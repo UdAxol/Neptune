@@ -1,8 +1,17 @@
-warn('[NEPTUNE-DIAG] bedwars chunk started; shared.vape='..tostring(shared.vape))
-if shared.vape then warn('[NEPTUNE-DIAG] vape.Categories Combat='..tostring(shared.vape.Categories and shared.vape.Categories.Combat)) end
+-- Chunk-level run() shared across every do-block segment so neptune extras
+-- and the neptune addon (which are in their own do-block scopes) can still
+-- register modules with the same `run(function() ... end)` pattern that neptune
+-- uses internally.
+local run = function(func)
+    local ok, err = pcall(func)
+    if not ok then
+        warn('[NEPTUNE] module failed to load: ' .. tostring(err))
+    end
+end
+getgenv()._neptune_run = run
+
 -- ===== NEPTUNE BEDWARS — neptune base =====
-warn('[NEPTUNE-DIAG] entering neptune block')
-local _aeroOk, _aeroErr = pcall(function()
+do
 local run = function(func)
     local ok, err = pcall(func)
     if not ok then
@@ -2206,7 +2215,7 @@ run(function()
 	end
 
 	AimAssist = vape.Categories.Combat:CreateModule({
-		Name = 'AimAssist (Neptune)',
+		Name = 'AimAssist',
 		Function = function(callback)
 			if callback then
 				AimAssist:Clean(runService.Heartbeat:Connect(function(dt)
@@ -2547,7 +2556,7 @@ run(function()
         end
 
         AutoClicker = vape.Categories.Combat:CreateModule({
-            Name = 'AutoClicker (Neptune)',
+            Name = 'AutoClicker',
             Function = function(callback)
                 if callback then
                     AutoClicker:Clean(inputService.InputBegan:Connect(function(input)
@@ -2671,7 +2680,7 @@ run(function()
         local ActivationScheduled = nil
 
         AutoClicker = vape.Categories.Combat:CreateModule({
-            Name = 'AutoClicker (Neptune)',
+            Name = 'AutoClicker',
             Function = function(callback)
                 if callback then
                     AutoClicker:Clean(inputService.InputBegan:Connect(function(input)
@@ -2981,7 +2990,7 @@ run(function()
     end
 
     KitRender = vape.Categories.Utility:CreateModule({
-        Name = "KitRender (Neptune)",
+        Name = "KitRender",
         Tooltip = "Shows everyone's kit during kit phase (for 5v5 or Squads)",
         Function = function(callback)
             if callback then
@@ -3005,7 +3014,7 @@ run(function()
 	local SwordReach, MineReach
 
 	Reach = vape.Categories.Combat:CreateModule({
-		Name = 'Reach (Neptune)',
+		Name = 'Reach',
 		Function = function(callback)
 			if callback then
 				if SwordReach and SwordReach.Enabled then
@@ -3131,7 +3140,7 @@ run(function()
 	local old
 	
 	Sprint = vape.Categories.Combat:CreateModule({
-		Name = 'Sprint (Neptune)',
+		Name = 'Sprint',
 		Function = function(callback)
 			if callback then
 				if inputService.TouchEnabled then 
@@ -3186,7 +3195,7 @@ run(function()
 	local t = 0
 
 	TriggerBot = vape.Categories.Combat:CreateModule({
-		Name = 'TriggerBot (Neptune)',
+		Name = 'TriggerBot',
 		Tooltip = 'Automatically swings when hovering over a entity',
 		Disabled = canEngine,
 		Function = function(callback)
@@ -3411,7 +3420,7 @@ run(function()
 	local rand = Random.new()
 
 	Velocity = vape.Categories.Combat:CreateModule({
-		Name = 'Velocity (Neptune)',
+		Name = 'Velocity',
 		Tooltip = 'allows you to edit ur velocity',
 		Function = function(callback)
 			if callback then
@@ -3619,7 +3628,7 @@ run(function()
     end
 
     AntiFall = vape.Categories.Blatant:CreateModule({
-        Name = 'AntiFall (Neptune)',
+        Name = 'AntiFall',
         Function = function(callback)
             if callback then
                 repeat task_wait() until store.matchState ~= 0 or (not AntiFall.Enabled)
@@ -3859,7 +3868,7 @@ run(function()
     end
     
     FastBreak = vape.Categories.Blatant:CreateModule({
-        Name = 'FastBreak (Neptune)',
+        Name = 'FastBreak',
         Function = function(callback)
             if callback then
                 oldHitBlock = bedwars.BlockBreaker.hitBlock
@@ -4084,7 +4093,7 @@ run(function()
     end
 
     Fly = vape.Categories.Blatant:CreateModule({
-        Name = 'Fly (Neptune)',
+        Name = 'Fly',
         Function = function(callback)
             frictionTable.Fly = callback or nil
             updateVelocity()
@@ -4482,7 +4491,7 @@ run(function()
     end
 
     HitBoxes = vape.Categories.Blatant:CreateModule({
-        Name = 'HitBoxes (Neptune)',
+        Name = 'HitBoxes',
         Function = function(callback)
             if callback then
                 manuallyDisabled = false
@@ -4669,7 +4678,7 @@ end)
 	
 run(function()
 	vape.Categories.Blatant:CreateModule({
-		Name = 'KeepSprint (Neptune)',
+		Name = 'KeepSprint',
 		Function = function(callback)
 			debug.setconstant(bedwars.SprintController.startSprinting, 5, callback and 'blockSprinting' or 'blockSprint')
 			bedwars.SprintController:stopSprinting()
@@ -5545,7 +5554,7 @@ run(function()
     end
     
     Killaura = vape.Categories.Blatant:CreateModule({
-        Name = 'Killaura (Neptune)',
+        Name = 'Killaura',
         Function = function(callback)
             if callback then 
 				local attacked = {}   
@@ -6632,7 +6641,7 @@ run(function()
 	end
 
 	Killaura = vape.Categories.Blatant:CreateModule({
-		Name = 'GrandKillaura (Neptune)',
+		Name = 'GrandKillaura',
 		Function = function(callback)
 			if callback then
 				if inputService.TouchEnabled then
@@ -7071,7 +7080,7 @@ run(function()
     end
     
 	ProximityPromptDuration = vape.Categories.Utility:CreateModule({
-		Name = 'ProximityPromptDuration (Neptune)',
+		Name = 'ProximityPromptDuration',
 		Function = function(callback)
 			if callback then
 				cacheExistingPrompts()
@@ -7110,7 +7119,7 @@ run(function()
     local FROZEN_THRESHOLD = 10
 
     local NoSlowdown = vape.Categories.Blatant:CreateModule({
-        Name = 'NoSlowdown (Neptune)',
+        Name = 'NoSlowdown',
         Function = function(callback)
             local modifier = bedwars.SprintController:getMovementStatusModifier()
             if callback then
@@ -7152,7 +7161,7 @@ run(function()
     local lastChargeTime = 0
     
     AutoVanessa = vape.Categories.Kits:CreateModule({
-        Name = 'AutoVanessa (Neptune)',
+        Name = 'AutoVanessa',
         Function = function(callback)
             if callback then
                 task.spawn(function()
@@ -7408,7 +7417,7 @@ run(function()
 	end
 
 	ProjectileAimbot = vape.Categories.Blatant:CreateModule({
-		Name = 'ProjectileAimbot (Neptune)',
+		Name = 'ProjectileAimbot',
 		Function = function(callback)
 			if callback then
 					if PAFOVCircle then
@@ -7827,7 +7836,7 @@ run(function()
 	local oldhook
 	local oldConnect
 	TaxRemover = vape.Categories.Blatant:CreateModule({
-		Name = "TaxRemover (Neptune)",
+		Name = "TaxRemover",
 		Function = function(callback)
 			if callback then
 				oldtax = bedwars.ShopTaxController.isTaxed
@@ -8054,7 +8063,7 @@ run(function()
 	end
 	
 	local AutoShoot = vape.Categories.Utility:CreateModule({
-		Name = 'AutoShoot (Neptune)',
+		Name = 'AutoShoot',
 		Function = function(callback)
 			if callback then
 				autoShootEnabled = true
@@ -8247,7 +8256,7 @@ end)
 run(function()
 	local a = {Enabled = false}
 	a = vape.Categories.World:CreateModule({
-		Name = "Leave Party (Neptune)",
+		Name = "Leave Party",
 		Function = function(call)
 			if call then
 				a:Toggle(false)
@@ -8265,7 +8274,7 @@ run(function()
     local maxChargeTime = 0.58
     
     AutoChargeBow = vape.Categories.Utility:CreateModule({
-        Name = 'AutoChargeBow (Neptune)',
+        Name = 'AutoChargeBow',
         Function = function(callback)
             if callback then
                 old = bedwars.ProjectileController.calculateImportantLaunchValues
@@ -8335,7 +8344,7 @@ run(function()
 	end
 	
 	BedESP = vape.Categories.Render:CreateModule({
-		Name = 'BedESP (Neptune)',
+		Name = 'BedESP',
 		Function = function(callback)
 			if callback then
 				BedESP:Clean(collectionService:GetInstanceAddedSignal('bed'):Connect(function(bed)
@@ -8688,7 +8697,7 @@ run(function()
 	end
 
 	KitESP = vape.Categories.Kits:CreateModule({
-		Name = 'KitESP (Neptune)',
+		Name = 'KitESP',
 		Function = function(callback)
 			if callback then
 				task.spawn(function()
@@ -8935,7 +8944,7 @@ run(function()
 	end
 	
 	LootESP = vape.Categories.Render:CreateModule({
-		Name = 'LootESP (Neptune)',
+		Name = 'LootESP',
 		Function = function(callback)
 			if callback then
 				findExistingLoot()
@@ -9132,7 +9141,7 @@ run(function()
 	LongJumpMethods.pirate_gunpowder_barrel = LongJumpMethods.tnt
 	
 	LongJump = vape.Categories.Blatant:CreateModule({
-		Name = 'LongJump (Neptune)',
+		Name = 'LongJump',
 		Function = function(callback)
 			frictionTable.LongJump = callback or nil
 			updateVelocity()
@@ -9935,7 +9944,7 @@ run(function()
     }
 
     NameTags = vape.Categories.Render:CreateModule({
-        Name = 'NameTags (Neptune)',
+        Name = 'NameTags',
         Function = function(callback)
             if callback then
                 methodused = DrawingToggle.Enabled and 'Drawing' or 'Normal'
@@ -10393,7 +10402,7 @@ run(function()
 	end
 
 	BedAlarm = vape.Categories.Utility:CreateModule({
-		Name = "BedAlarm (Neptune)",
+		Name = "BedAlarm",
 		Tooltip = 'Notifies when an enemy is near your bed',
 		Function = function(callback)
 			if callback then
@@ -10653,7 +10662,7 @@ run(function()
 	end
 	
 	StorageESP = vape.Categories.Render:CreateModule({
-		Name = 'StorageESP (Neptune)',
+		Name = 'StorageESP',
 		Function = function(callback)
 			if callback then
 				local tagged = collectionService:GetTagged('chest')
@@ -10755,7 +10764,7 @@ run(function()
 	end
 
 	AutoKit = vape.Categories.Utility:CreateModule({
-		Name = 'AutoKit (Neptune)',
+		Name = 'AutoKit',
 		Function = function(callback)
 			if callback then
 				repeat task.wait() until store.equippedKit ~= '' and store.matchState ~= 0 or (not AutoKit.Enabled)
@@ -12170,7 +12179,7 @@ run(function()
 	end
 
 	BetterDavey = vape.Categories.Kits:CreateModule({
-		Name = 'AutoDavey (Neptune)',
+		Name = 'AutoDavey',
 		Function = function(callback)
 			if callback then
 				CannonHandController.launchSelf = function(...)
@@ -12323,7 +12332,7 @@ run(function()
     local lastValidationCheck = 0
     
     NightmareEmote = vape.Categories.World:CreateModule({
-        Name = "NightmareEmote (Neptune)",
+        Name = "NightmareEmote",
         Function = function(call)
             if call then
                 local l__GameQueryUtil__8
@@ -12535,7 +12544,7 @@ run(function()
 	end
 
     AutoCounter = vape.Categories.World:CreateModule({
-        Name = 'AutoCounter (Neptune)',
+        Name = 'AutoCounter',
         Function = function(callback)
             if callback then
                 table.clear(counteredTnt)
@@ -12708,7 +12717,7 @@ run(function()
 	end
 	
 	AutoPlay = vape.Categories.Utility:CreateModule({
-		Name = 'AutoPlay (Neptune)',
+		Name = 'AutoPlay',
 		Function = function(callback)
 			if callback then
 				AutoPlay:Clean(vapeEvents.EntityDeathEvent.Event:Connect(function(deathTable)
@@ -12736,7 +12745,7 @@ run(function()
     local trackedPrompts = {}
     
     ProximityMaxDistance = vape.Categories.Utility:CreateModule({
-        Name = "ProximityExtender (Neptune)",
+        Name = "ProximityExtender",
         Function = function(callback)
             
             if callback then
@@ -12830,7 +12839,7 @@ run(function()
 	local cachedLowestPoint
 	
 	AutoVoidDrop = vape.Categories.Utility:CreateModule({
-		Name = 'AutoVoidDrop (Neptune)',
+		Name = 'AutoVoidDrop',
 		Function = function(callback)
 			if callback then
 				repeat task.wait() until store.matchState ~= 0 or (not AutoVoidDrop.Enabled)
@@ -12911,7 +12920,7 @@ run(function()
 	local pearlLastInHandTick = 0  
 
 	AutoReset = vape.Categories.Utility:CreateModule({
-		Name = 'AutoReset (Neptune)',
+		Name = 'AutoReset',
 		Function = function(callback)
 			if callback then
 				repeat task.wait() until store.matchState ~= 0 or (not AutoReset.Enabled)
@@ -12982,7 +12991,7 @@ run(function()
 	end)
 
 	ProjAura = vape.Categories.Utility:CreateModule({
-		Name = 'ProjAura (Neptune)',
+		Name = 'ProjAura',
 		Function = function(callback)
 			if callback then
 				repeat task.wait() until store.matchState ~= 0 or (not ProjAura.Enabled)
@@ -13055,7 +13064,7 @@ run(function()
 	local lastPickupTime = 0
 	
 	PickupRange = vape.Categories.Utility:CreateModule({
-		Name = 'PickupRange (Neptune)',
+		Name = 'PickupRange',
 		Function = function(callback)
 			if callback then
 				local items = collection('ItemDrop', PickupRange)
@@ -13258,7 +13267,7 @@ run(function()
 	end
 	
 	Scaffold = vape.Categories.Utility:CreateModule({
-		Name = 'Scaffold (Neptune)',
+		Name = 'Scaffold',
 		Function = function(callback)
 			if callback then
 				lastPlaceTime = 0
@@ -13392,7 +13401,7 @@ run(function()
 	end
 	
 	ShopTierBypass = vape.Categories.Utility:CreateModule({
-		Name = 'ShopTierBypass (Neptune)',
+		Name = 'ShopTierBypass',
 		Function = function(callback)
 			if callback then
 				local function collectAndBypass()
@@ -13479,7 +13488,7 @@ end)
 	
 run(function()
 	vape.Categories.World:CreateModule({
-		Name = 'AntiAFK (Neptune)',
+		Name = 'AntiAFK',
 		Function = function(callback)
 			if callback then
 				pcall(function()
@@ -13541,7 +13550,7 @@ run(function()
     end
     
     AutoBuildUp = vape.Categories.World:CreateModule({
-        Name = 'AutoBuildUp (Neptune)',
+        Name = 'AutoBuildUp',
         Function = function(callback)
             
             if callback then
@@ -13611,7 +13620,7 @@ run(function()
 	end
 	
 	AutoTool = vape.Categories.World:CreateModule({
-		Name = 'AutoTool (Neptune)',
+		Name = 'AutoTool',
 		Function = function(callback)
 			if callback then
 				event = Instance.new('BindableEvent')
@@ -13683,7 +13692,7 @@ run(function()
 	end
 	
 	ChestSteal = vape.Categories.World:CreateModule({
-		Name = 'ChestSteal (Neptune)',
+		Name = 'ChestSteal',
 		Function = function(callback)
 			if callback then
 				local chests = collection('chest', ChestSteal)
@@ -13920,7 +13929,7 @@ run(function()
 	end
 
 	AutoBank = vape.Categories.Inventory:CreateModule({
-		Name = 'AutoBank (Neptune)',
+		Name = 'AutoBank',
 		Function = function(callback)
 			if callback then
 				Chests = collection('chest', AutoBank)
@@ -14385,7 +14394,7 @@ run(function()
 	end
 	
 	BlockIn = vape.Categories.Utility:CreateModule({
-		Name = 'BlockIn (Neptune)',
+		Name = 'BlockIn',
 		Function = function(callback)
 			if callback then
 				initCPS()
@@ -14591,7 +14600,7 @@ run(function()
 	end
 	
 	AutoBuy = vape.Categories.Inventory:CreateModule({
-		Name = 'AutoBuy (Neptune)',
+		Name = 'AutoBuy',
 		Function = function(callback)
 			if callback then
 				repeat task.wait() until store.queueType ~= 'bedwars_test'
@@ -14877,7 +14886,7 @@ run(function()
 	end
 	
 	AutoConsume = vape.Categories.Inventory:CreateModule({
-		Name = 'AutoConsume (Neptune)',
+		Name = 'AutoConsume',
 		Function = function(callback)
 			if callback then
 				local throttle = 0
@@ -14924,7 +14933,7 @@ run(function()
 	local oldclickhold, oldshowprogress
 	
 	local FastConsume = vape.Categories.Inventory:CreateModule({
-		Name = 'FastConsume (Neptune)',
+		Name = 'FastConsume',
 		Function = function(callback)
 			if callback then
 				oldclickhold = bedwars.ClickHold.startClick
@@ -15038,7 +15047,7 @@ run(function()
 	}
 
 	FastDrop = vape.Categories.Inventory:CreateModule({
-		Name = 'FastDrop (Neptune)',
+		Name = 'FastDrop',
 		Function = function(callback)
 			if callback then
 
@@ -15258,7 +15267,7 @@ run(function()
     end
     
     BedPlates = vape.Categories.Minigames:CreateModule({
-        Name = 'BedPlates (Neptune)',
+        Name = 'BedPlates',
         Function = function(callback)
             if callback then
                 table.clear(BlockCache)
@@ -15346,7 +15355,7 @@ run(function()
 
 	Headless = vape.Categories.Utility:CreateModule({
 		PerformanceModeBlacklisted = true,
-		Name = 'Headless (Neptune)',
+		Name = 'Headless',
 		Tooltip = 'free headless 2026',
 		Function = function(callback)
 			if callback then
@@ -15849,7 +15858,7 @@ run(function()
 	end
 
 	Breaker = vape.Categories.Minigames:CreateModule({
-		Name = 'Breaker (Neptune)',
+		Name = 'Breaker',
 		Function = function(callback)
 			if callback then
 				if ShowPath and ShowPath.Enabled then
@@ -16201,7 +16210,7 @@ run(function()
 	local nametagHooked = false
 	
 	FPSBoost = vape.Categories.BoostFPS:CreateModule({
-		Name = 'FPSBoost (Neptune)',
+		Name = 'FPSBoost',
 		Function = function(callback)
 			if callback then
 				if Kill.Enabled then
@@ -16289,7 +16298,7 @@ run(function()
 	local done = {}
 	
 	HitColor = vape.Categories.Legit:CreateModule({
-		Name = 'HitColor (Neptune)',
+		Name = 'HitColor',
 		Function = function(callback)
 			if callback then
 				local function hookHighlight(v)
@@ -16324,7 +16333,7 @@ end)
 
 run(function()
     HitFix = vape.Categories.Legit:CreateModule({
-        Name = 'HitFix (Neptune)',
+        Name = 'HitFix',
 		Function = function(callback)
 			debug.setconstant(bedwars.SwordController.swingSwordAtMouse, 23, callback and 'raycast' or 'Raycast')
 			debug.setupvalue(bedwars.SwordController.swingSwordAtMouse, 4, callback and bedwars.QueryUtil or workspace)
@@ -16372,7 +16381,7 @@ run(function()
 	end
 	
 	Interface = vape.Categories.Legit:CreateModule({
-		Name = 'Interface (Neptune)',
+		Name = 'Interface',
 		Function = function(callback)
 			for i, v in (callback and new or old) do
 				for i2, v2 in v do
@@ -16530,7 +16539,7 @@ run(function()
 	}
 	
 	KillEffect = vape.Categories.Legit:CreateModule({
-		Name = 'KillEffect (Neptune)',
+		Name = 'KillEffect',
 		Function = function(callback)
 			if callback then
 				for i, v in killeffects do
@@ -16602,7 +16611,7 @@ run(function()
     local NameToId = {}
     
     WinEffect = vape.Categories.Legit:CreateModule({
-        Name = "WinEffect (Neptune)",
+        Name = "WinEffect",
         Function = function(callback)
             if callback then
                 WinEffect:Clean(vapeEvents.MatchEndEvent.Event:Connect(function()
@@ -16643,7 +16652,7 @@ run(function()
     local MatchHistory
     
     MatchHistory = vape.Categories.Utility:CreateModule({
-        Name = "ClearMatchHistory (Neptune)",
+        Name = "ClearMatchHistory",
         Tooltip = "Resets ur match history",
         Function = function(callback)
             
@@ -16660,7 +16669,7 @@ end)
 run(function()
 	local ViewMatchHistory
 	ViewMatchHistory = vape.Categories.Utility:CreateModule({
-		Name = "ViewMatchHistory (Neptune)",
+		Name = "ViewMatchHistory",
 		Function = function(callback)
 			if callback then
 				ViewMatchHistory:Toggle(false)
@@ -16732,7 +16741,7 @@ run(function()
     end
     
     InvisibleCursor = vape.Categories.Utility:CreateModule({
-        Name = 'InvisibleCursor (Neptune)',
+        Name = 'InvisibleCursor',
         Function = function(callback)
             if callback then
                 isActive = true
@@ -17352,7 +17361,7 @@ run(function()
 	end
 	
 	AutoHotbar = vape.Categories.Inventory:CreateModule({
-		Name = 'AutoHotbar (Neptune)',
+		Name = 'AutoHotbar',
 		Function = function(callback)
 			if callback then
 				task.spawn(sortCallback)
@@ -17386,7 +17395,7 @@ run(function()
     local CpsConstants = nil
     
     BCR = vape.Categories.Blatant:CreateModule({
-        Name = "BlockCPSRemover (Neptune)",
+        Name = "BlockCPSRemover",
         Function = function(callback)
             
             if callback then
@@ -17461,7 +17470,7 @@ run(function()
     local originalLevel = nil  
     
     PlayerLevelSet = vape.Categories.Utility:CreateModule({
-        Name = 'SetPlayerLevel (Neptune)',
+        Name = 'SetPlayerLevel',
         Tooltip = 'Sets your player level to 100 (client sided)',
         Function = function(calling)
             if calling then                 
@@ -17734,7 +17743,7 @@ run(function()
 	end
 
 	StaffDetector = vape.Categories.Utility:CreateModule({
-		Name = 'StaffDetector (Neptune)',
+		Name = 'StaffDetector',
 		Function = function(callback)
 			if callback then
 				StaffDetector:Clean(playersService.PlayerAdded:Connect(playerAdded))
@@ -17984,7 +17993,7 @@ run(function()
 	end
 
 	StaffHUD = vape.Categories.Utility:CreateModule({
-		Name = 'StaffHUD (Neptune)',
+		Name = 'StaffHUD',
 		Function = function(callback)
 			if callback then
 				cleanAll()
@@ -18149,7 +18158,7 @@ run(function()
 	end
 
 	KaidaKillaura = vape.Categories.Kits:CreateModule({
-		Name = 'AutoKaida (Neptune)',
+		Name = 'AutoKaida',
 		Function = function(callback)
 			if callback then
 				lastAttackTime = 0
@@ -18456,7 +18465,7 @@ run(function()
 	end
 	
 	RemovePlayerLevel = vape.Categories.Render:CreateModule({
-		Name = 'RemovePlayerLevelUI (Neptune)',
+		Name = 'RemovePlayerLevelUI',
 		Function = function(callback)
 			if callback then
 				local existingTabList = lplr.PlayerGui:FindFirstChild("TabListScreenGui")
@@ -18570,7 +18579,7 @@ run(function()
 	end
 	
 	OG4v4v4v4 = vape.Categories.Render:CreateModule({
-		Name = 'OG4v4v4v4 (Neptune)',
+		Name = 'OG4v4v4v4',
 		Function = function(callback)
 			if callback then
 				local OrangeMaterial = Instance.new('MaterialVariant')
@@ -18904,7 +18913,7 @@ run(function()
 	end
 	
 	NoNameTag = vape.Categories.Utility:CreateModule({
-		Name = 'NoNameTag (Neptune)',
+		Name = 'NoNameTag',
 		Tooltip = 'Removes nametags for all players',
 		Function = function(callback)
 			if callback then
@@ -19226,7 +19235,7 @@ run(function()
     local renderConn
 
     OGNametags = vape.Categories.Render:CreateModule({
-        Name = "OGNametags (Neptune)",
+        Name = "OGNametags",
         Function = function(callback)
             if callback then
                 for _, plr in ipairs(playersService:GetPlayers()) do
@@ -19586,7 +19595,7 @@ run(function()
     end
 
     MetalDetector = vape.Categories.Kits:CreateModule({
-        Name = 'AutoMetal (Neptune)',
+        Name = 'AutoMetal',
         Function = function(callback)
             if callback then
                 if ESPToggle.Enabled then 
@@ -19891,7 +19900,7 @@ run(function()
 	end
 	
 	NoCollision = vape.Categories.World:CreateModule({
-		Name = 'NoCollision (Neptune)',
+		Name = 'NoCollision',
 		Function = function(callback)
 			if callback then
 				local frameCounter = 0
@@ -20003,7 +20012,7 @@ run(function()
 	end
 	
 	ShadowRemover = vape.Categories.BoostFPS:CreateModule({
-		Name = 'ShadowRemover (Neptune)',
+		Name = 'ShadowRemover',
 		Function = function(callback)
 			if callback then
 				local descendants = workspace:GetDescendants()
@@ -20047,7 +20056,7 @@ end)
 run(function()
 	local WhiteHits
 	WhiteHits = vape.Categories.Legit:CreateModule({
-		Name = "WhiteHits (Neptune)",
+		Name = "WhiteHits",
 		Function = function(callback)
 			if callback then
 				repeat
@@ -20257,7 +20266,7 @@ run(function()
     end
 
     AutoLani = vape.Categories.Kits:CreateModule({
-        Name = "AutoLani (Neptune)",
+        Name = "AutoLani",
         Function = function(callback)
             running = callback
             if callback then
@@ -20666,7 +20675,7 @@ run(function()
 	end
 
 	AutoPearl = vape.Categories.Utility:CreateModule({
-		Name = 'AutoPearl (Neptune)',
+		Name = 'AutoPearl',
 		Function = function(callback)
 			if callback then
 				local lastThrowTime = 0
@@ -20842,7 +20851,7 @@ run(function()
 	end
 
 	NoFall = vape.Categories.Blatant:CreateModule({
-		Name = 'NoFall (Neptune)',
+		Name = 'NoFall',
 		Tooltip = '[BETA]',
 		Function = function(callback)
 			if callback then
@@ -21012,7 +21021,7 @@ run(function()
 	end
 	
 	RemoveNeon = vape.Categories.BoostFPS:CreateModule({
-		Name = 'RemoveNeon (Neptune)',
+		Name = 'RemoveNeon',
 		Function = function(callback)
 			if callback then
 				task.spawn(function()
@@ -21061,7 +21070,7 @@ run(function()
 	local Blocks
 	local old
 	MiloDisguse = vape.Categories.Utility:CreateModule({
-		Name = "MiloDisguise (Neptune)",
+		Name = "MiloDisguise",
 		Tooltip = 'allows you to be any block u want to hide as',
 		Function = function(callback)
 			if not callback then
@@ -21303,7 +21312,7 @@ run(function()
 	end
 
     Fisherman = vape.Categories.Kits:CreateModule({
-        Name    = "AutoFisher (Neptune)",
+        Name = "AutoFisher",
         Tooltip = "Auto minigame, loot ESP, blacklist, AutoCasting, and spy for the Fisherman kit",
         Function = function(callback)
             if callback then
@@ -21571,7 +21580,7 @@ run(function()
     end
     
     AutoWhisper = vape.Categories.Kits:CreateModule({
-        Name = "AutoWhisper (Neptune)",
+        Name = "AutoWhisper",
         Function = function(callback)
             running = callback
             healRunning = callback
@@ -22062,7 +22071,7 @@ run(function()
     end
 
     Eldertree = vape.Categories.Kits:CreateModule({
-        Name = 'AutoEldertree (Neptune)',
+        Name = 'AutoEldertree',
         Function = function(callback)
             if callback then
                 if ESPToggle.Enabled then 
@@ -22442,7 +22451,7 @@ run(function()
 	end
 
     StarCollector = vape.Categories.Kits:CreateModule({
-        Name = 'AutoStar (Neptune)',
+        Name = 'AutoStar',
         Function = function(callback)
             if callback then
                 if ESPToggle.Enabled then 
@@ -22677,7 +22686,7 @@ run(function()
     end
 
     Melody = vape.Categories.Kits:CreateModule({
-        Name = 'AutoMelody (Neptune)',
+        Name = 'AutoMelody',
         Function = function(callback)
             if callback then
                 lastHealTime = 0
@@ -22747,7 +22756,7 @@ run(function()
     end
 
     autoZenoModule = vape.Categories.Kits:CreateModule({
-        Name = 'AutoZeno (Neptune)',
+        Name = 'AutoZeno',
         Function = function(callback)
             if callback then
                 repeat
@@ -23544,7 +23553,7 @@ run(function()
     local updateTimer = 0
 
     GeneratorESP = vape.Categories.Render:CreateModule({
-        Name = 'GeneratorESP (Neptune)',
+        Name = 'GeneratorESP',
         Function = function(callback)
             if callback then
                 findAllGenerators()
@@ -23770,7 +23779,7 @@ run(function()
     end
     
     Gingerbread = vape.Categories.Kits:CreateModule({
-        Name = 'AutoGinger (Neptune)',
+        Name = 'AutoGinger',
         Function = function(callback)
             if callback then
                 local old = bedwars.LaunchPadController.attemptLaunch
@@ -24510,7 +24519,7 @@ run(function()
     end
 
     Beekeeper = vape.Categories.Kits:CreateModule({
-        Name = 'AutoBeekeeper (Neptune)',
+        Name = 'AutoBeekeeper',
         Function = function(callback)
             if callback then
                 if ESPToggle.Enabled then
@@ -25273,7 +25282,7 @@ run(function()
     end
     
     DrillUtilities = vape.Categories.Kits:CreateModule({
-        Name = 'AutoDrill (Neptune)',
+        Name = 'AutoDrill',
         Function = function(callback)
             if callback then
                 if AutoAttack.Enabled then
@@ -25386,7 +25395,7 @@ run(function()
 	local DisableStreamer
 	local old = {}
 	DisableStreamer = vape.Categories.Legit:CreateModule({
-		Name = 'DisableStreamer (Neptune)',
+		Name = 'DisableStreamer',
 		Function = function(callback)
 			if callback then
 				for _, plrs in playersService:GetPlayers() do
@@ -25419,7 +25428,7 @@ end)
 
 run(function()
 	TrapDisabler = vape.Categories.Utility:CreateModule({
-		Name = 'TrapDisabler (Neptune)',
+		Name = 'TrapDisabler',
 		Tooltip = 'Disables Snap Traps'
 	})
 end)
@@ -25428,7 +25437,7 @@ run(function()
 	local RavenTP
 	
 	RavenTP = vape.Categories.Utility:CreateModule({
-		Name = 'RavenTP (Neptune)',
+		Name = 'RavenTP',
 		Function = function(callback)
 			if callback then
 				RavenTP:Toggle()
@@ -25634,7 +25643,7 @@ run(function()
     end
 
     Kaliyah = vape.Categories.Kits:CreateModule({
-        Name = 'AutoKaliyah (Neptune)',
+        Name = 'AutoKaliyah',
         Function = function(callback)
             if callback then
                 if AutoPunch.Enabled then
@@ -26060,7 +26069,7 @@ run(function()
     end
 
     Grove = vape.Categories.Kits:CreateModule({
-        Name = 'AutoGrove (Neptune)',
+        Name = 'AutoGrove',
         Function = function(callback)
             if callback then
                 if SpiritESP.Enabled then 
@@ -26591,7 +26600,7 @@ run(function()
 
 	shared.ACMODVIEWENABLED = false
 	AC_MOD_View.moduleInstance = vape.Categories.World:CreateModule({
-		Name = "AC MOD View (Neptune)",
+		Name = "AC MOD View",
 		Tags = {'new', 'op'},
 		Function = function(call)
 			shared.ACMODVIEWENABLED = call
@@ -27039,7 +27048,7 @@ run(function()
     end
 
     Lucia = vape.Categories.Kits:CreateModule({
-        Name = 'AutoLucia (Neptune)',
+        Name = 'AutoLucia',
         Function = function(callback)
             if callback then
                 if LuciaESPToggle.Enabled then
@@ -27421,7 +27430,7 @@ run(function()
     end
 
     AutoNahila = vape.Categories.Kits:CreateModule({
-        Name = "AutoNahila (Neptune)",
+        Name = "AutoNahila",
         Function = function(callback)
             running = callback
             
@@ -27798,7 +27807,7 @@ run(function()
 	local KATarget 
 
 	AutoHannah = vape.Categories.Kits:CreateModule({
-		Name = "AutoHannah (Neptune)",
+		Name = "AutoHannah",
 		Tooltip = 'auto execute players',
 		Function = function(callback)
 			if callback then
@@ -27868,7 +27877,7 @@ run(function()
 	local Targets
 
 	AutoNyx = vape.Categories.Kits:CreateModule({
-		Name = 'AutoNyx (Neptune)',
+		Name = 'AutoNyx',
 		Tooltip = 'pop abiltiy',
 		Function = function(call)
 			if call then
@@ -27902,7 +27911,7 @@ run(function()
 	local FOV
 
 	AutoWarden = vape.Categories.Kits:CreateModule({
-		Name = "AutoWarden (Neptune)",
+		Name = "AutoWarden",
 		Tooltip = "Automatically collects souls",
 		Function = function(callback)
 			if callback then
@@ -27993,7 +28002,7 @@ run(function()
 	}	
 	
 	FishermanSpy = vape.Categories.Kits:CreateModule({
-		Name = "FishermanSpy (Neptune)",
+		Name = "FishermanSpy",
 		Tooltip = 'notifys whenever a fisher has caught something',
 		Function = function(callback)
 			if callback then
@@ -28203,7 +28212,7 @@ run(function()
     end
 
     BeehiveSpy = vape.Categories.Kits:CreateModule({
-        Name    = "BeehiveSpy (Neptune)",
+        Name = "BeehiveSpy",
         Tooltip = "Shows enemy/other players' beehives with owner name and level (ignores your own)",
         Function = function(callback)
             if callback then
@@ -28433,7 +28442,7 @@ run(function()
     end
 
     LuciaSpy = vape.Categories.Kits:CreateModule({
-        Name    = "LuciaSpy (Neptune)",
+        Name = "LuciaSpy",
         Tooltip = "Notifies when players deposit, break, or open pinatas",
         Function = function(callback)
             if callback then
@@ -29310,7 +29319,7 @@ run(function()
 	local SkinTypeDropdown
 
 	SkinChanger = vape.Categories.Render:CreateModule({
-		Name = "SkinChanger (Neptune)",
+		Name = "SkinChanger",
 		Function = function(enabled)
 			if enabled then
 				if isCannonSkin() then
@@ -29418,7 +29427,7 @@ run(function()
 	end
 	
 	AutoHonor = vape.Categories.Minigames:CreateModule({
-		Name = "AutoHonor (Neptune)",
+		Name = "AutoHonor",
 		Function = function(callback)
 			if callback then
 				AutoHonor:Clean(vapeEvents.EntityDeathEvent.Event:Connect(function(deathTable)
@@ -29449,7 +29458,7 @@ run(function()
 	local Old
 
 	ElektraExtender = vape.Categories.Kits:CreateModule({
-		Name = 'ElektraExtender (Neptune)',
+		Name = 'ElektraExtender',
 		Tooltip = 'Makes you dash farther',
 		Function = function(callback)
 			if callback then
@@ -29492,7 +29501,7 @@ run(function()
 	local old = nil
 	
 	JadeCD = vape.Categories.Kits:CreateModule({
-		Name = "JadeCooldown (Neptune)",
+		Name = "JadeCooldown",
 		Tooltip = "Custom cooldown for Jade Hammer",
 		Function = function(callback)
 			if callback then
@@ -29542,7 +29551,7 @@ run(function()
 	local old = nil
 	
 	RegentCD = vape.Categories.Kits:CreateModule({
-		Name = "RegentCooldown (Neptune)",
+		Name = "RegentCooldown",
 		Tooltip = "Custom cooldown for Void Regent axe",
 		Function = function(callback)
 			if callback then
@@ -29663,7 +29672,7 @@ run(function()
     end
 
     YuziDasher = vape.Categories.Kits:CreateModule({
-        Name = 'YuziDasher (Neptune)',
+        Name = 'YuziDasher',
         Function = function(callback)
             if callback then
                 YuziDasher:Clean(inputService.InputBegan:Connect(function(input, gameProcessed)
@@ -29714,7 +29723,7 @@ end)
 run(function()
 	local InfKrystal
 	InfKrystal = vape.Categories.Kits:CreateModule({
-		Name = 'InfKrystal (Neptune)',
+		Name = 'InfKrystal',
 		Tooltip = 'infinfinf',
 		Function = function(callback)
 			if callback then
@@ -29816,7 +29825,7 @@ run(function()
 	end
 
 	AntiEffects = vape.Categories.World:CreateModule({
-		Name = 'AntiEffects (Neptune)',
+		Name = 'AntiEffects',
 		Tooltip = 'blocks negative effects',
 		Function = function(callback)
 			if callback then
@@ -29865,7 +29874,7 @@ run(function()
 	local vim = cloneref(game:GetService("VirtualInputManager"))
 
 	AutoMushroom = vape.Categories.World:CreateModule({
-		Name = 'AutoMushroom (Neptune)',
+		Name = 'AutoMushroom',
 		Tooltip = 'automatically collects mushrooms with for you.',
 		Function = function(callback)
 			if callback then
@@ -29988,7 +29997,7 @@ run(function()
 	end
 
 	AutoPotion = vape.Categories.Kits:CreateModule({
-		Name = 'AutoPotion (Neptune)',
+		Name = 'AutoPotion',
 		Tooltip = 'Automatically brews the selected alchemist potion when you have the materials',
 		Function = function(callback)
 			if callback then
@@ -30018,7 +30027,7 @@ run(function()
 	local Angle
 
 	AutoMartin = vape.Categories.Kits:CreateModule({
-		Name = 'AutoMartin (Neptune)',
+		Name = 'AutoMartin',
 		Tooltip = 'Automatically fires cactus ability at nearby targets',
 		Function = function(callback)
 			if callback then
@@ -30354,7 +30363,7 @@ run(function()
 	end
 	
 	PotatoMode = vape.Categories.BoostFPS:CreateModule({
-		Name = 'PotatoMode (Neptune)',
+		Name = 'PotatoMode',
 		Function = function(callback)
 			if callback then
 				processExistingBlocks(true)
@@ -30431,7 +30440,7 @@ run(function()
 	end
 	
 	FrameBuffer = vape.Categories.Blatant:CreateModule({
-		Name = 'FrameBuffer (Neptune)',
+		Name = 'FrameBuffer',
 		Function = function(callback)
 			if callback then
 				repeat
@@ -30483,7 +30492,7 @@ run(function()
 	end
 	
 	LegacyAnimation = vape.Categories.Render:CreateModule({
-		Name = 'LegacyAnimation (Neptune)',
+		Name = 'LegacyAnimation',
 		Function = function(callback)
 			
 			if callback then
@@ -30509,7 +30518,7 @@ run(function()
 	}
 	
 	FishermanESP = vape.Categories.Utility:CreateModule({
-		Name = "FishermanESP (Neptune)",
+		Name = "FishermanESP",
 		Tooltip = 'shows what fish you are catching before the minigame starts',
 		Function = function(callback)		
 			if callback then		
@@ -30554,7 +30563,7 @@ run(function()
 	local AimMode
 
 	DaveyAim = vape.Categories.Utility:CreateModule({
-		Name = 'DaveyAim (Neptune)',
+		Name = 'DaveyAim',
 		Function = function(callback)
 			if not callback then return end
 			DaveyAim:Toggle(false)
@@ -30704,7 +30713,7 @@ run(function()
     end
 
     BetterDavey = vape.Categories.Kits:CreateModule({
-        Name = "BetterDavey (Neptune)",
+        Name = "BetterDavey",
         Tooltip = "makes u look better with davey makes u play like me(i main davey everyday kush)",
 		Function = function(callback)
 			local worldFolder = getWorldFolder()
@@ -30846,7 +30855,7 @@ run(function()
 	local AntiMagma
 
 	AntiMagma = vape.Categories.World:CreateModule({
-		Name = "AntiMagma (Neptune)",
+		Name = "AntiMagma",
 		Tooltip = 'allows you not to be instantly killed by magma',
 		Function = function(callback)
 			if callback then
@@ -30918,7 +30927,7 @@ run(function()
 
 
 	TrapESP = vape.Categories.Render:CreateModule({
-		Name = 'TrapESP (Neptune)',
+		Name = 'TrapESP',
 		Function = function(callback)
 			if callback then
 				TrapESP:Clean(collectionService:GetInstanceAddedSignal('snap_trap'):Connect(function(v)
@@ -31125,7 +31134,7 @@ run(function()
 	end
 
 	MouseTP = vape.Categories.Blatant:CreateModule({
-		Name = "MouseTP (Neptune)",
+		Name = "MouseTP",
 		Tooltip = 'allows you to teleport with various methods',
 		Function = function(callback)
 			if callback then
@@ -31154,7 +31163,7 @@ run(function()
 	local Targets
 	local Sorts
 	PlayerAttach = vape.Categories.Blatant:CreateModule({
-		Name = "PlayerAttach (Neptune)",
+		Name = "PlayerAttach",
 		Tooltip = 'teleports you the closest player/npc near you in a specific range',
 		Function = function(callback)
 			if callback then
@@ -31301,7 +31310,7 @@ run(function()
 	end
 
 	SilentAura = vape.Categories.Combat:CreateModule({
-		Name = 'SilentAura (Neptune)',
+		Name = 'SilentAura',
 		Function = function(callback)
 			if not callback then return end
 			task.spawn(function()
@@ -31390,7 +31399,7 @@ run(function()
 	local old, oldc1
 	
 	Viewmodel = vape.Categories.Combat:CreateModule({
-		Name = 'Viewmodel (Neptune)',
+		Name = 'Viewmodel',
 		Function = function(callback)
 			local viewmodel = gameCamera:FindFirstChild('Viewmodel')
 			if callback then
@@ -31493,7 +31502,7 @@ run(function()
 	local motionBlurConn = nil
 
 	MotionBlur = vape.Categories.Legit:CreateModule({
-		Name = 'MotionBlur (Neptune)',
+		Name = 'MotionBlur',
 		Function = function(callback)
 			if callback then
 				motionBlurEffect = Instance.new('BlurEffect')
@@ -31637,7 +31646,7 @@ run(function()
     end
     
     Caitlyn = vape.Categories.Kits:CreateModule({
-        Name = 'AutoCaitlyn (Neptune)',
+        Name = 'AutoCaitlyn',
         Function = function(callback)
             if callback then
                 local damageConnection = vapeEvents.EntityDamageEvent.Event:Connect(function(damageTable)
@@ -31741,7 +31750,7 @@ end)
 run(function()
 	local GrimReaperFix
 	GrimReaperFix = vape.Categories.Utility:CreateModule({
-		Name = 'GrimReaperFix (Neptune)',
+		Name = 'GrimReaperFix',
 		Function = function(callback)
 			if callback then
 				GrimReaperFix:Clean(runService.Heartbeat:Connect(function()
@@ -31905,7 +31914,7 @@ run(function()
     end
 
     FarmerCletus = vape.Categories.Kits:CreateModule({
-        Name = 'AutoFarmer (Neptune)',
+        Name = 'AutoFarmer',
         Function = function(callback)
             if callback then
                 if ESPToggle.Enabled then
@@ -32073,7 +32082,7 @@ run(function()
 	local isCharging = false
 	local chargeAnim, FpChargeAnim = nil,nil
 	AutoEmber = vape.Categories.Kits:CreateModule({
-		Name = 'AutoEmber (Neptune)',
+		Name = 'AutoEmber',
 		Tooltip = 'automatically uses the ember ability',
 		Function = function(call)
 			if call then
@@ -32244,7 +32253,7 @@ run(function()
     end
 
     AutoBuilder = vape.Categories.Kits:CreateModule({
-        Name = 'AutoBuilder (Neptune)',
+        Name = 'AutoBuilder',
         Function = function(state)
             if not state then return end
             repeat
@@ -32325,7 +32334,7 @@ run(function()
     local currentCharge = 0
 
     AutoRelease = vape.Categories.Utility:CreateModule({
-        Name = 'AutoRelease (Neptune)',
+        Name = 'AutoRelease',
         Tooltip = 'Automatically releases the projectile when the charge\nreaches the set percentage',
         Function = function(isEnabled)
             if isEnabled then
@@ -32381,7 +32390,7 @@ run(function()
     local DEBOUNCE_TIME = 0.018 
     
     Fullbright = vape.Categories.World:CreateModule({
-        Name = "Fullbright (Neptune)",
+        Name = "Fullbright",
         Function = function(callback)
             if callback then
                 lightingsettings = {
@@ -32557,7 +32566,7 @@ run(function()
     end
 
 	AutoUma = vape.Categories.Kits:CreateModule({
-        Name = 'AutoUma (Neptune)',
+        Name = 'AutoUma',
         Tooltip = 'Automates spirit staff usage for drops',
         Function = function(enabled)
             if not enabled then return end
@@ -32758,7 +32767,7 @@ run(function()
     end
 
     Clutch = vape.Categories.Utility:CreateModule({
-        Name = 'Clutch (Neptune)',
+        Name = 'Clutch',
         Function = function(call)
             if call then
                 clutchCount = 0
@@ -33064,7 +33073,7 @@ run(function()
 
 
     BedAssist = vape.Categories.Utility:CreateModule({
-        Name = "BedAssist (Neptune)",
+        Name = "BedAssist",
         Function = function(callback)
             if callback then
                 beds = collectionService:GetTagged("bed")
@@ -33196,7 +33205,7 @@ run(function()
 	local oldvalues, oldfont = {}
 	
 	DamageIndicator = vape.Categories.Legit:CreateModule({
-		Name = 'Damage Indicator (Neptune)',
+		Name = 'Damage Indicator',
 		Function = function(callback)
 			if callback then
 				oldvalues = table.clone(tab)
@@ -33293,7 +33302,7 @@ run(function()
 	local customMouseIcon = {Enabled = false}
 	local customIcon = {Value = ''}
 	CustomCursor = vape.Categories.Utility:CreateModule({
-		Name = 'CustomCursor (Neptune)',
+		Name = 'CustomCursor',
 		Tooltip = 'Modifies your cursor\'s image.',
 		Function = function(callback)
 			if callback then
@@ -33441,7 +33450,7 @@ run(function()
     end
 
     AutoLasso = vape.Categories.Kits:CreateModule({
-        Name = 'AutoLasso (Neptune)',
+        Name = 'AutoLasso',
         Function = function(callback)
             if callback then
                 repeat
@@ -33518,7 +33527,7 @@ run(function()
 	local AutoEmote
 	if not remotes.Emote then remotes.Emote = "Emote" end
 	AutoEmote = vape.Categories.Utility:CreateModule({
-		Name = "AutoEmote (Neptune)",
+		Name = "AutoEmote",
 		Function = function(callback) end,
 		Tooltip = "Plays Bed Break emote on kill."
 	})
@@ -33826,7 +33835,7 @@ run(function()
 	end
 	
 	DRBedAlarm = vape.Categories.Utility:CreateModule({
-		Name = 'DRBedAlarm (Neptune)',
+		Name = 'DRBedAlarm',
 		Function = function(callback)
 			if callback then
 				local bed = getOwnBed()
@@ -34049,7 +34058,7 @@ run(function()
 	end
 
 	KnockbackDisplace = vape.Categories.Combat:CreateModule({
-		Name = 'KnockbackDisplace (Neptune)',
+		Name = 'KnockbackDisplace',
 		Function = function(callback)
 			if callback then
 				local util = findKnockbackUtil()
@@ -34187,7 +34196,7 @@ run(function()
 	end
 
 	AnimChopper = vape.Categories.Combat:CreateModule({
-		Name = 'AnimChopper (Neptune)',
+		Name = 'AnimChopper',
 		Function = function(callback)
 			if callback then
 				renderConnection = RunService.RenderStepped:Connect(function()
@@ -34273,7 +34282,7 @@ run(function()
 	rayCheck.RespectCanCollide = true
 	
 	Speed = vape.Categories.Blatant:CreateModule({
-		Name = 'Speed (Neptune)',
+		Name = 'Speed',
 		Function = function(callback)
 			frictionTable.Speed = callback or nil
 			updateVelocity()
@@ -34364,7 +34373,7 @@ run(function()
 	end
 	local old = tick()
 	Desync = vape.Categories.Blatant:CreateModule({
-		Name = "Desync (Neptune)",
+		Name = "Desync",
 		Tooltip = 'uses various methods to desync ur position',
 		Function = function(callback)
 			if callback then
@@ -34489,7 +34498,7 @@ run(function()
 	end
 
 	NameTagSpoofer = vape.Categories.Render:CreateModule({
-		Name = 'NameTagSpoofer (Neptune)',
+		Name = 'NameTagSpoofer',
 		Tooltip = 'script made by sleepvs.',
 		Function = function(callback)
 			if callback then
@@ -34608,12 +34617,10 @@ run(function()
 	})
 end)
 
-end)
-if not _aeroOk then warn('[NEPTUNE-DIAG] AERO BLOCK CRASHED: '..tostring(_aeroErr)) else warn('[NEPTUNE-DIAG] neptune block complete') end
+end
 
 -- ===== neptune unique extras =====
-warn('[NEPTUNE-DIAG] entering neptune extras block')
-local _catOk, _catErr = pcall(function()
+do
 run(function() 
 	local BowAssist
 	local Targets
@@ -38021,12 +38028,10 @@ if canDebug then
 end
 	
 
-end)
-if not _catOk then warn('[NEPTUNE-DIAG] CATV6 EXTRAS CRASHED: '..tostring(_catErr)) else warn('[NEPTUNE-DIAG] neptune extras complete') end
+end
 
 -- ===== neptune addon (free modules) =====
-warn('[NEPTUNE-DIAG] entering addon block')
-local _addonOk, _addonErr = pcall(function()
+do
 -- ============================================================
 -- Neptune — Premium Addon Modules
 -- These are appended to bedwars/main.luau plaintext BEFORE obfuscation
@@ -38159,6 +38164,4 @@ run(function()
 	})
 end)
 
-end)
-if not _addonOk then warn('[NEPTUNE-DIAG] ADDON CRASHED: '..tostring(_addonErr)) else warn('[NEPTUNE-DIAG] addon complete') end
-warn('[NEPTUNE-DIAG] bedwars chunk reached end of file')
+end
