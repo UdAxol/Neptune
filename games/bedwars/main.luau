@@ -10,6 +10,32 @@ local run = function(func)
 end
 getgenv()._neptune_run = run
 
+-- WIPE UNIVERSAL MODULES so we start bedwars with a clean slate.
+-- Universal.lua registers ~5 generic Combat modules, plus its own entries in
+-- the other user-facing categories. We don't want any of them visible while
+-- the player is in bedwars — they should see ONLY the bedwars-specific
+-- neptune/neptune/addon modules. We keep vape.Libraries (entitylib, targetinfo,
+-- prediction, hash, etc.) intact because neptune's prelude reads from them.
+do
+    local _v = shared.vape
+    if _v and _v.Modules and type(_v.Remove) == 'function' then
+        local _wipeCats = {Combat=true,Blatant=true,Render=true,Legit=true,
+                           Utility=true,World=true,Inventory=true,
+                           Minigames=true,Kits=true,BoostFPS=true}
+        local _toRemove = {}
+        for _name, _mod in pairs(_v.Modules) do
+            if type(_mod) == 'table' and _mod.Category and _wipeCats[_mod.Category] then
+                _toRemove[#_toRemove+1] = _name
+            end
+        end
+        for _, _name in ipairs(_toRemove) do
+            local ok, err = pcall(function() _v:Remove(_name) end)
+            if not ok then warn('[NEPTUNE] failed to wipe universal module ' .. _name .. ': ' .. tostring(err)) end
+        end
+        warn('[NEPTUNE-DIAG] wiped ' .. tostring(#_toRemove) .. ' universal modules from user-facing categories')
+    end
+end
+
 warn('[NEPTUNE-DIAG] bedwars chunk started; PlaceId=' .. tostring(game.PlaceId) .. ' shared.vape=' .. tostring(shared.vape and 'set' or 'nil'))
 if shared.vape and shared.vape.Categories then warn('[NEPTUNE-DIAG] Combat category present=' .. tostring(shared.vape.Categories.Combat ~= nil)) end
 -- ===== NEPTUNE BEDWARS — neptune base =====
