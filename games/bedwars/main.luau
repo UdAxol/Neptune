@@ -1,5 +1,8 @@
+warn('[NEPTUNE-DIAG] bedwars chunk started; shared.vape='..tostring(shared.vape))
+if shared.vape then warn('[NEPTUNE-DIAG] vape.Categories Combat='..tostring(shared.vape.Categories and shared.vape.Categories.Combat)) end
 -- ===== NEPTUNE BEDWARS — neptune base =====
-do
+warn('[NEPTUNE-DIAG] entering neptune block')
+local _aeroOk, _aeroErr = pcall(function()
 local run = function(func)
     local ok, err = pcall(func)
     if not ok then
@@ -34605,10 +34608,12 @@ run(function()
 	})
 end)
 
-end
+end)
+if not _aeroOk then warn('[NEPTUNE-DIAG] AERO BLOCK CRASHED: '..tostring(_aeroErr)) else warn('[NEPTUNE-DIAG] neptune block complete') end
 
 -- ===== neptune unique extras =====
-do
+warn('[NEPTUNE-DIAG] entering neptune extras block')
+local _catOk, _catErr = pcall(function()
 run(function() 
 	local BowAssist
 	local Targets
@@ -38016,10 +38021,12 @@ if canDebug then
 end
 	
 
-end
+end)
+if not _catOk then warn('[NEPTUNE-DIAG] CATV6 EXTRAS CRASHED: '..tostring(_catErr)) else warn('[NEPTUNE-DIAG] neptune extras complete') end
 
 -- ===== neptune addon (free modules) =====
-do
+warn('[NEPTUNE-DIAG] entering addon block')
+local _addonOk, _addonErr = pcall(function()
 -- ============================================================
 -- Neptune — Premium Addon Modules
 -- These are appended to bedwars/main.luau plaintext BEFORE obfuscation
@@ -38152,4 +38159,6 @@ run(function()
 	})
 end)
 
-end
+end)
+if not _addonOk then warn('[NEPTUNE-DIAG] ADDON CRASHED: '..tostring(_addonErr)) else warn('[NEPTUNE-DIAG] addon complete') end
+warn('[NEPTUNE-DIAG] bedwars chunk reached end of file')
