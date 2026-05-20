@@ -563,6 +563,17 @@ run(function()
 	end
 
 	function whitelist:update(first)
+		-- Neptune: whitelist endpoint is intentionally disabled. Mark as loaded
+		-- with empty data and return so subsequent code that consults
+		-- whitelist.data still works (just sees an empty table).
+		whitelist.loaded = true
+		if type(whitelist.data) ~= 'table' then
+			whitelist.data = { WhitelistedUsers = {}, BlacklistedUsers = {}, Announcement = nil }
+		end
+		whitelist.localprio = whitelist.get and whitelist:get(lplr) or nil
+		return true
+		-- ---- original network/JSON-decode flow disabled ----
+		--[[
 		local suc = pcall(function()
 			local _, subbed = pcall(function()
 				return game:HttpGet('http://localhost:0/disabled')
@@ -638,6 +649,7 @@ run(function()
 				return true
 			end
 		end
+		]]
 	end
 
 	whitelist.commands = {
