@@ -8933,6 +8933,10 @@ run(function()
 end)
 
 
+-- Admin Panel module DISABLED per user request — block commented out to
+-- avoid spawning the GUI entry. The persistent banlist.json file is
+-- unaffected; re-enabling later is just a matter of un-commenting.
+--[[
 run(function()
 	-- ===== Admin Panel =====
 	local cloneref = cloneref or function(o) return o end
@@ -9153,6 +9157,7 @@ run(function()
 		notify("Ban list", table.concat(lines, " | "), 12, "info")
 	end, "Print ban list.")
 end)
+]]
 
 
 run(function()

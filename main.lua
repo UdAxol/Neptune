@@ -543,87 +543,12 @@ do
 	getgenv()._NEPTUNE_TIME_LEFT = fmtRemaining
 
 
-	task.defer(function()
-		local deadline = tick() + 10
-		while tick() < deadline do
-			if shared.vape and shared.vape.Categories then break end
-			task.wait(0.2)
-		end
-		if not shared.vape or not shared.vape.Categories then return end
-
-		local cat = shared.vape.Categories.Render or shared.vape.Categories.Main
-		if not cat or not cat.CreateModule then return end
-
-		local Account = cat:CreateModule({
-			Name = "Account",
-			Tooltip = "Your Neptune subscription. Paste a key to redeem; see time remaining.",
-			Function = function() end,
-		})
-
-		local timeLabel
-		local inputKey = ""
-
-		if Account.CreateTextBox then
-			Account:CreateTextBox({
-				Name = "Status",
-				Placeholder = fmtRemaining(),
-				Function = function() end,
-			})
-			timeLabel = Account
-			Account:CreateTextBox({
-				Name = "Key",
-				Placeholder = "NEP-XXXXX-XXXXX-XXXXX-XXXXX",
-				Function = function(t) inputKey = t end,
-			})
-		end
-
-		local function singleShot(name, fn, tip)
-			local tog
-			tog = Account:CreateToggle({
-				Name = name,
-				Tooltip = tip,
-				Function = function(state)
-					if state then
-						task.spawn(fn)
-						task.defer(function() if tog.Enabled then tog:Toggle() end end)
-					end
-				end,
-			})
-			return tog
-		end
-
-		singleShot("Redeem", function()
-			if not inputKey or #inputKey < 8 then
-				shared.vape:CreateNotification("Account", "paste a key first", 4, "alert")
-				return
-			end
-			local ok, info = redeem(inputKey)
-			if ok then
-				shared.vape:CreateNotification("Account",
-					(info.tier == "premium" and "PREMIUM unlocked (LIFETIME)" or "extended — " .. fmtRemaining()),
-					6, "info")
-			else
-				shared.vape:CreateNotification("Account", "redeem failed: " .. tostring(info), 5, "alert")
-			end
-		end, "Validate the pasted key and add its duration to your account (or grant Lifetime if Premium).")
-
-		singleShot("Get Key", function()
-			pcall(function() setclipboard(DISCORD_LINK) end)
-			shared.vape:CreateNotification("Account",
-				"Discord link copied — DM the owner to buy a key", 5, "info")
-		end, "Copy the Discord invite to your clipboard.")
-
-		-- Live countdown in the status placeholder
-		task.spawn(function()
-			while task.wait(1) do
-				if not shared.vape or not shared.vape.Loaded then return end
-				-- Best-effort live label update; some UI frameworks expose the box differently
-				pcall(function()
-					if Account and Account.SetLabel then Account:SetLabel(fmtRemaining()) end
-				end)
-			end
-		end)
-	end)
+	-- Account module DISABLED per user request — the redeem/key-status pane
+	-- is no longer registered. The key system still functions in the
+	-- background (validateKey on chunk start, kick-non-premium hooks, etc.)
+	-- but doesn't appear in the GUI's Settings/Account category.
+	-- getgenv()._NEPTUNE_REDEEM and getgenv()._NEPTUNE_TIME_LEFT remain
+	-- exposed so command-line redeem still works.
 
 	-- ===== Premium-only: Kick Non-Premium Users module =====
 	task.defer(function()

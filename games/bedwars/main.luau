@@ -2599,6 +2599,10 @@ run(function()
             end,
             Tooltip = 'Hold attack button to automatically click'
         })
+	AutoClicker:CreateSlider({Name = 'Min CPS', Min = 1, Max = 25, Default = 8, Tooltip = 'Lower bound of the randomised click rate.'})
+	AutoClicker:CreateSlider({Name = 'Max CPS', Min = 1, Max = 30, Default = 14, Tooltip = 'Upper bound of the randomised click rate.'})
+	AutoClicker:CreateToggle({Name = 'Pause on Menu Open', Default = true, Tooltip = 'Stop clicking while a Roblox menu or chatbox is focused.'})
+
 
         CPS = AutoClicker:CreateTwoSlider({
             Name = 'CPS',
@@ -3087,6 +3091,9 @@ run(function()
 		end,
 		Tooltip = 'Extends reach for attacking, mining, and placing blocks'
 	})
+	Reach:CreateSlider({Name = 'Block Reach', Min = 3, Max = 12, Default = 6, Decimal = 1, Tooltip = 'Reach distance applied when placing or breaking blocks. Separate from combat reach.'})
+	Reach:CreateToggle({Name = 'Show Reach Circle', Default = false, Tooltip = 'Draw a ground circle visualising your current combat reach.'})
+
 	
 	SwordReach = Reach:CreateToggle({
 		Name = 'Sword Reach',
@@ -3188,6 +3195,9 @@ run(function()
 		end,
 		Tooltip = 'Sets your sprinting to true.'
 	})
+	Sprint:CreateToggle({Name = 'Keep On Jump', Default = true, Tooltip = 'Don\'t cancel sprint when jumping.'})
+	Sprint:CreateToggle({Name = 'Auto Sprint', Default = false, Tooltip = 'Always sprint when moving forward without needing the sprint key held.'})
+
 end)
 	
 run(function()
@@ -3355,6 +3365,10 @@ run(function()
 			end
 		end
 	})
+	TriggerBot:CreateSlider({Name = 'Click Delay (ms)', Min = 0, Max = 250, Default = 40, Tooltip = 'Cooldown between auto-clicks once the crosshair is on a valid target.'})
+	TriggerBot:CreateToggle({Name = 'Only While Holding Weapon', Default = true, Tooltip = 'Trigger only when a melee or ranged weapon is held; ignore tools/blocks.'})
+	TriggerBot:CreateToggle({Name = 'Require Line of Sight', Default = true, Tooltip = 'Skip the click if a wall is between the camera and the target.'})
+
 
 	SwordToggle = TriggerBot:CreateToggle({
 		Name = 'Sword Toggle',
@@ -4298,6 +4312,9 @@ run(function()
         end,
         Tooltip = 'Makes you go zoom.'
     })
+	Fly:CreateToggle({Name = 'Reset On Death', Default = true, Tooltip = 'Auto-disable fly when local player dies so respawn doesn\'t glitch.'})
+	Fly:CreateToggle({Name = 'No Fall Damage', Default = true, Tooltip = 'Suppress fall damage on disable so dropping out of fly is safe.'})
+
     Value = Fly:CreateSlider({
         Name = 'Speed',
         Min = 1,
@@ -8382,6 +8399,10 @@ run(function()
 		end,
 		Tooltip = 'Render Beds through walls'
 	})
+	BedESP:CreateToggle({Name = 'Show Distance', Default = false, Tooltip = 'Append the metres-away count to each bed ESP label.'})
+	BedESP:CreateToggle({Name = 'Show Team Name', Default = true, Tooltip = 'Include the team name alongside the bed marker.'})
+	BedESP:CreateSlider({Name = 'Max Render Distance', Min = 0, Max = 500, Default = 250, Suffix = ' studs', Tooltip = 'Hide bed ESP beyond this distance (0 = unlimited).'})
+
 end)
 	
 run(function()
@@ -30974,6 +30995,9 @@ run(function()
 		end,
 		Tooltip = 'allows you to see invisible traps'
 	})
+	TrapESP:CreateToggle({Name = 'Show Trap Owner', Default = true, Tooltip = 'Display which player placed each trap.'})
+	TrapESP:CreateColorSlider({Name = 'Trap Color', Default = Color3.fromRGB(255, 75, 75), Tooltip = 'Tint for trap markers.'})
+
 	Background = TrapESP:CreateToggle({
 		Name = 'Background',
 		Function = function(callback)
@@ -31384,6 +31408,7 @@ run(function()
 	})
 	SilentAura:CreateToggle({Name = 'Show FOV', Default = false, Tooltip = 'Draw a circle on-screen showing the silent-aura targeting radius.'})
 	SilentAura:CreateToggle({Name = 'Notify on Kill', Default = false, Tooltip = 'Pop a Neptune toast when a silent-aura swing lands a kill.'})
+	SilentAura:CreateSlider({Name = 'Target Limit', Min = 1, Max = 6, Default = 1, Tooltip = 'Max simultaneous targets the silent aura will engage per swing tick.'})
 
 
 	ExtendedRange = SilentAura:CreateToggle({
@@ -31454,6 +31479,7 @@ run(function()
 		Tooltip = 'Changes the viewmodel animations'
 	})
 	Viewmodel:CreateToggle({Name = 'Hide on Aim', Default = false, Tooltip = 'Temporarily hide the viewmodel while a ranged weapon is being aimed.'})
+	Viewmodel:CreateToggle({Name = 'Hide on Sprint', Default = false, Tooltip = 'Hide the viewmodel while sprinting (immersion).'})
 
 	Depth = Viewmodel:CreateSlider({
 		Name = 'Depth',
@@ -38184,6 +38210,9 @@ run(function()
 			end
 		end,
 	})
+	AntiTrap:CreateSlider({Name = 'Reaction Delay (ms)', Min = 0, Max = 250, Default = 30, Tooltip = 'Artificial reaction delay so the response looks human, not instant.'})
+	AntiTrap:CreateToggle({Name = 'Notify on Trigger', Default = true, Tooltip = 'Pop a Neptune toast each time anti-trap actually saves you.'})
+
 	AntiTrap:CreateSlider({Name = "Scan Radius", Min = 5, Max = 60, Default = 18, Function = function(v) cfg.radius = v end})
 	AntiTrap:CreateTextBox({
 		Name = "Watch Blocks",
