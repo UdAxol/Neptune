@@ -733,7 +733,15 @@ if not shared.VapeIndependent then
 						if not isfolder('neptune/games/' .. gameKey) then
 							makefolder('neptune/games/' .. gameKey)
 						end
-						loadstring(downloadFile('neptune/games/' .. gameKey .. '/' .. placeKey .. '.luau'), tostring(game.PlaceId))(table.unpack(_argv))
+						do
+							local _src = downloadFile('neptune/games/' .. gameKey .. '/' .. placeKey .. '.luau')
+							local _fn, _err = loadstring(_src, tostring(game.PlaceId))
+							if _fn then
+								_fn((table.unpack or unpack)(_argv))
+							else
+								warn('[NEPTUNE] failed to load ' .. placeKey .. ': ' .. tostring(_err))
+							end
+						end
 						local aeroPath = 'neptune/games/' .. gameKey .. '/aero.luau'
 						local aeroExists = isfile(aeroPath)
 						if not aeroExists then
@@ -743,7 +751,7 @@ if not shared.VapeIndependent then
 						if placeKey == 'main' and aeroExists then
 							pcall(function()
 								local aeroFn = loadstring(downloadFile(aeroPath), 'aero ' .. tostring(game.PlaceId))
-								if aeroFn then aeroFn(table.unpack(_argv)) end
+								if aeroFn then aeroFn((table.unpack or unpack)(_argv)) end
 							end)
 						end
 						break
@@ -756,13 +764,13 @@ if not shared.VapeIndependent then
 	if not loaded then
 		local gameFileId = game.PlaceId
 		if isfile('neptune/games/' .. gameFileId .. '.lua') then
-			loadstring(downloadFile('neptune/games/' .. gameFileId .. '.lua'), tostring(gameFileId))(table.unpack(_argv))
+			loadstring(downloadFile('neptune/games/' .. gameFileId .. '.lua'), tostring(gameFileId))((table.unpack or unpack)(_argv))
 		elseif not shared.VapeDeveloper then
 			local suc, res = pcall(function()
 				return game:HttpGet('https://raw.githubusercontent.com/UdAxol/Neptune/' .. readfile('neptune/profiles/commit.txt') .. '/games/' .. gameFileId .. '.lua', true)
 			end)
 			if suc and res ~= '404: Not Found' then
-				loadstring(downloadFile('neptune/games/' .. gameFileId .. '.lua'), tostring(gameFileId))(table.unpack(_argv))
+				loadstring(downloadFile('neptune/games/' .. gameFileId .. '.lua'), tostring(gameFileId))((table.unpack or unpack)(_argv))
 			end
 		end
 	end

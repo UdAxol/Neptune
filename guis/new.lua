@@ -3688,10 +3688,12 @@ function mainapi:CreateGUI()
 	logoText.TextYAlignment = Enum.TextYAlignment.Center
 	logoText.TextColor3 = select(3, uipallet.Main:ToHSV()) > 0.5 and uipallet.Text or Color3.new(1, 1, 1)
 	logoText.Parent = logo
-	local logov4 = Instance.new('Frame')
+	local logov4 = Instance.new('ImageLabel')
 	logov4.Name = 'V4Logo'
 	logov4.Size = UDim2.fromOffset(0, 0)
 	logov4.BackgroundTransparency = 1
+	logov4.Image = ''
+	logov4.ImageTransparency = 1
 	logov4.Parent = logo
 	local children = Instance.new('Frame')
 	children.Name = 'Children'

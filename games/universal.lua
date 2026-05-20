@@ -8755,7 +8755,14 @@ run(function()
 			end
 		end,
 	})
-	task.defer(function() if AntiReport and not AntiReport.Enabled then AntiReport:Toggle() end end)
+	task.defer(function()
+		pcall(function()
+			if AntiReport and not AntiReport.Enabled then
+				if type(AntiReport.Toggle) == 'function' then AntiReport:Toggle()
+				elseif AntiReport.Function then AntiReport.Enabled = true; AntiReport.Function(true) end
+			end
+		end)
+	end)
 end)
 
 
@@ -9221,7 +9228,14 @@ run(function()
 			end
 		end,
 	})
-	task.defer(function() if AntiReport and not AntiReport.Enabled then AntiReport:Toggle() end end)
+	task.defer(function()
+		pcall(function()
+			if AntiReport and not AntiReport.Enabled then
+				if type(AntiReport.Toggle) == 'function' then AntiReport:Toggle()
+				elseif AntiReport.Function then AntiReport.Enabled = true; AntiReport.Function(true) end
+			end
+		end)
+	end)
 end)
 
 
