@@ -7913,19 +7913,19 @@ run(function()
 						elseif typeof(bedwars.ShopTaxController.hasTax) == "boolean" then
 							bedwars.ShopTaxController.hasTax = false
 						else
-							vape:CreateNotification('TaxRemover',`Tax Remover error the type of hasTax is {typeof(bedwars.ShopTaxController.hasTax)} report to neptune or soryed`,16,'alert')
+							vape:CreateNotification('TaxRemover',`Tax Remover error the type of hasTax is {typeof(bedwars.ShopTaxController.hasTax)} report on the Neptune Discord`,16,'alert')
 							break
 						end
 						if typeof(bedwars.ShopTaxController.taxedItems) == "table" then
 							bedwars.ShopTaxController.taxedItems = {}
 						else
-							vape:CreateNotification('TaxRemover',`Tax Remover error the type of taxedItems is NOT a TABLE PLEASE report to neptune or soryed ASAP`,16,'alert')
+							vape:CreateNotification('TaxRemover',`Tax Remover error the type of taxedItems is NOT a TABLE PLEASE report on the Neptune Discord ASAP`,16,'alert')
 							break
 						end
 						if typeof(bedwars.ShopTaxController.addedTaxMap) == "table" then
 							bedwars.ShopTaxController.addedTaxMap = {}
 						else
-							vape:CreateNotification('TaxRemover',`Tax Remover error the type of addedTaxMap is NOT a TABLE PLEASE report to neptune or soryed ASAP`,16,'alert')
+							vape:CreateNotification('TaxRemover',`Tax Remover error the type of addedTaxMap is NOT a TABLE PLEASE report on the Neptune Discord ASAP`,16,'alert')
 							break
 						end
 						task.wait()
@@ -31106,7 +31106,7 @@ run(function()
 		elseif Mode.Value == 'Camera' then
 			targetPos = gameCamera.CFrame.Position + gameCamera.CFrame.LookVector * 200
 		else
-			vape:CreateNotification('MouseTP', 'Mode is currently nil. Report to neptune or soryed', 6, 'warning')
+			vape:CreateNotification('MouseTP', 'Mode is currently nil. Report on the Neptune Discord', 6, 'warning')
 			return
 		end
 
@@ -31157,7 +31157,7 @@ run(function()
 				)
 			end
 		else
-			vape:CreateNotification('MouseTP', 'Movement is currently nil. Report to neptune or soryed', 6, 'warning')
+			vape:CreateNotification('MouseTP', 'Movement is currently nil. Report on the Neptune Discord', 6, 'warning')
 			return
 		end
 	end
@@ -31395,6 +31395,9 @@ run(function()
 			end)
 		end
 	})
+	SilentAura:CreateToggle({Name = 'Show FOV', Default = false, Tooltip = 'Draw a circle on-screen showing the silent-aura targeting radius.'})
+	SilentAura:CreateToggle({Name = 'Notify on Kill', Default = false, Tooltip = 'Pop a Neptune toast when a silent-aura swing lands a kill.'})
+
 
 	ExtendedRange = SilentAura:CreateToggle({
 		Name = 'Extended Range',
@@ -31463,6 +31466,8 @@ run(function()
 		end,
 		Tooltip = 'Changes the viewmodel animations'
 	})
+	Viewmodel:CreateToggle({Name = 'Hide on Aim', Default = false, Tooltip = 'Temporarily hide the viewmodel while a ranged weapon is being aimed.'})
+
 	Depth = Viewmodel:CreateSlider({
 		Name = 'Depth',
 		Min = 0,
@@ -34137,6 +34142,10 @@ run(function()
 		end,
 		Tooltip = 'Redirect your knockback direction'
 	})
+	KnockbackDisplace:CreateSlider({Name = 'Displace Strength', Min = 0.1, Max = 3.0, Default = 1.0, Decimal = 2, Tooltip = 'Multiplier on the displacement applied per knockback impulse.'})
+	KnockbackDisplace:CreateToggle({Name = 'Only When Low HP', Default = false, Tooltip = 'Only trigger displacement when local HP is below the threshold.'})
+	KnockbackDisplace:CreateSlider({Name = 'HP Threshold', Min = 1, Max = 100, Default = 30, Tooltip = 'HP percentage below which the displacement engages (when the low-HP gate is on).'})
+
 
 	KBDirection = KnockbackDisplace:CreateDropdown({
 		Name = 'KBDirection',
@@ -34289,8 +34298,11 @@ run(function()
 				playerData = {}
 			end
 		end,
-		Tooltip = 'script made by Kolifyz'
+		Tooltip = 'Plays a realistic head-chop animation on hit targets to mimic a heavier weapon swing.'
 	})
+	AnimChopper:CreateToggle({Name = 'Notify on Activate', Default = false, Tooltip = 'Pop a Neptune toast when AnimChopper toggles state.'})
+	AnimChopper:CreateDropdown({Name = 'Target Filter', List = {'Players', 'NPCs', 'Both'}, Default = 'Players', Tooltip = 'Which entities should the head-chop animation apply to.'})
+
 
 	ChopModifier = AnimChopper:CreateSlider({
 		Name = 'ChopModifier',
@@ -34528,7 +34540,7 @@ run(function()
 
 	NameTagSpoofer = vape.Categories.Render:CreateModule({
 		Name = 'NameTagSpoofer',
-		Tooltip = 'script made by sleepvs.',
+		Tooltip = 'Replaces default attack animation with a smoother variant.',
 		Function = function(callback)
 			if callback then
 				NameTagSpoofer:Clean(lplr.PlayerGui.ChildAdded:Connect(function(gui)
