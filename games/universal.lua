@@ -1,34 +1,31 @@
 -- ====================================================================
--- NEPTUNE merge-aware CreateModule patch.
+-- NEPTUNE merge-aware CreateModule patch — bedwars-wins strategy.
 --
 -- The GUI's per-category :CreateModule(modulesettings) FIRST calls
 -- mainapi:Remove(modulesettings.Name) which destroys any module that
--- already exists with that name. That makes dupes by name a "last write
--- wins" — sub-features from the earlier registration are lost.
---
--- We wrap each category's CreateModule so that on dupe-by-name we
--- instead:
+-- already exists with that name. We wrap each category's CreateModule
+-- so that on dupe-by-name we:
 --   1. Return the EXISTING moduleapi (so subsequent :CreateToggle /
---      :CreateSlider / etc calls attach to it).
---   2. Chain the new Function callback onto the existing modulesettings
---      so toggling the module runs BOTH original Function bodies.
+--      :CreateSlider / etc calls attach to it — feature merge).
+--   2. SWAP modulesettings.Function to the new (bedwars/aero) one so
+--      toggling the module gets the bedwars-tuned behavior instead of
+--      universal's generic one. This is the "bedwars wins" rule.
+--   3. Drop the universal Tooltip in favour of the new one (more
+--      specific) when there is one.
 --
--- We also stash the modulesettings table reference on the moduleapi
--- (._neptuneModulesettings) so the chain has access to the closure-
+-- Net effect: when aero/catv6/addon try to register a module that
+-- universal already registered (same Name), aero's bedwars-tuned
+-- Function wins, but BOTH sets of sub-features stay visible under one
+-- merged module entry. Universal-unique modules (ESP, Chams, Tracers,
+-- Arrows, Search, Waypoints, Health, etc.) that aero doesn't ship are
+-- preserved untouched.
+--
+-- We stash the modulesettings table reference on the moduleapi
+-- (._neptuneModulesettings) so the swap has access to the closure-
 -- captured table without us needing to monkey-patch the framework's
 -- internals.
 -- ====================================================================
 do
-    local function chainFn(prev, new)
-        if not prev then return new end
-        if not new or new == prev then return prev end
-        return function(state)
-            local ok, err = pcall(prev, state)
-            if not ok then warn('[NEPTUNE-MERGE] prev fn errored: ' .. tostring(err)) end
-            local ok2, err2 = pcall(new, state)
-            if not ok2 then warn('[NEPTUNE-MERGE] new fn errored: ' .. tostring(err2)) end
-        end
-    end
     local function wrapCategory(cat, mainapi)
         if not cat or cat._neptuneMergeReady or type(cat.CreateModule) ~= 'function' then return end
         cat._neptuneMergeReady = true
@@ -37,8 +34,10 @@ do
             local existing = mainapi.Modules and mainapi.Modules[modulesettings.Name]
             if existing and existing._neptuneModulesettings then
                 local origSettings = existing._neptuneModulesettings
-                origSettings.Function = chainFn(origSettings.Function, modulesettings.Function)
-                if modulesettings.Tooltip and not origSettings.Tooltip then
+                if modulesettings.Function then
+                    origSettings.Function = modulesettings.Function
+                end
+                if modulesettings.Tooltip then
                     origSettings.Tooltip = modulesettings.Tooltip
                 end
                 return existing
@@ -55,15 +54,11 @@ do
         for _, cat in pairs(vape.Categories) do
             wrapCategory(cat, vape)
         end
-        -- Watch for newly created categories (e.g., game-specific scripts
-        -- might add their own categories after we patched the existing set).
         local origCreate = vape.CreateCategory
         if type(origCreate) == 'function' then
             vape.CreateCategory = function(self, settings)
                 local cat = origCreate(self, settings)
                 wrapCategory(cat, vape)
-                -- categoryapi is also stored on vape.Categories[name]; wrap
-                -- that reference too in case it differs.
                 if vape.Categories and vape.Categories[settings.Name] then
                     wrapCategory(vape.Categories[settings.Name], vape)
                 end
