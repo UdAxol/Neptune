@@ -31320,7 +31320,13 @@ run(function()
 
 	local function canHitWithHitreg()
 		local currentTime = tick()
-		local hitreg = math.random(340, 350) / 10
+		local hitreg
+		if _G.NeptuneSilentAuraCustomHR and _G.NeptuneSilentAuraCustomHR.Enabled
+		   and _G.NeptuneSilentAuraHRSlider and _G.NeptuneSilentAuraHRSlider.Value then
+			hitreg = _G.NeptuneSilentAuraHRSlider.Value
+		else
+			hitreg = math.random(340, 350) / 10
+		end
 		local delayBetweenHits = 10 / hitreg
 		if currentTime - lastHitTime >= delayBetweenHits then
 			lastHitTime = lastHitTime + delayBetweenHits
@@ -31409,6 +31415,8 @@ run(function()
 	SilentAura:CreateToggle({Name = 'Show FOV', Default = false, Tooltip = 'Draw a circle on-screen showing the silent-aura targeting radius.'})
 	SilentAura:CreateToggle({Name = 'Notify on Kill', Default = false, Tooltip = 'Pop a Neptune toast when a silent-aura swing lands a kill.'})
 	SilentAura:CreateSlider({Name = 'Target Limit', Min = 1, Max = 6, Default = 1, Tooltip = 'Max simultaneous targets the silent aura will engage per swing tick.'})
+	_G.NeptuneSilentAuraCustomHR = SilentAura:CreateToggle({Name = 'Custom Hit Reg', Default = false, Tooltip = 'Override the default randomised hit registration rate with your own value. Off = vanilla (~34 CPS).'})
+	_G.NeptuneSilentAuraHRSlider = SilentAura:CreateSlider({Name = 'Hit Reg', Min = 1, Max = 40, Default = 34, Decimal = 1, Suffix = ' CPS', Tooltip = 'Effective swings-per-second the silent aura attempts when Custom Hit Reg is on. Higher = more aggressive but more detectable.'})
 
 
 	ExtendedRange = SilentAura:CreateToggle({
