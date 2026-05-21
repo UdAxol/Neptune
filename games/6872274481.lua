@@ -38513,6 +38513,17 @@ run(function()
 		                shiftTop={220,235,255}, shiftBottom={160,180,210}, exposure=0.2,
 		                atmoDensity=0.6, atmoColor={210,225,245}, atmoGlare=0.3, atmoHaze=2, atmoOffset=0, atmoDecay={106,112,125},
 		                saturation=-0.2, contrast=0.1, tintColor={220,235,255}, bloomIntensity=0.7, bloomSize=20, bloomThreshold=0.9, },
+		-- Purple Calm — soft lavender twilight. Low contrast, gentle bloom +
+		-- pink-purple tint, soft fog band. Default to ClockTime=18 so the
+		-- world catches sunset highlights through the purple.
+		["Purple Calm"] = {
+		                ambient={90,60,150}, outdoorAmbient={150,110,210}, brightness=1.05, clockTime=18,
+		                fogColor={170,130,220}, fogStart=120, fogEnd=750,
+		                shiftTop={210,180,255}, shiftBottom={110,80,160}, exposure=0.2,
+		                atmoDensity=0.3, atmoColor={180,140,230}, atmoGlare=0.2, atmoHaze=1.2, atmoOffset=0, atmoDecay={106,112,125},
+		                saturation=-0.15, contrast=-0.1, tintColor={230,200,255},
+		                bloomIntensity=0.9, bloomSize=28, bloomThreshold=0.85,
+		                blurSize=0, sunRays=0.25, sunRaysSpread=1, },
 	}
 
 	-- Suppress slider Function callbacks during a preset snap so we don't
@@ -38770,7 +38781,7 @@ run(function()
 		List = {"Default", "Custom",
 		        "Night", "Vaporwave", "Neon", "Cinematic", "Sunset", "Foggy", "Hell", "Underwater",
 		        "Blood", "Pastel", "Cyberpunk", "Matrix",
-		        "Dreamy", "Apocalypse", "Movie", "Frostbite"},
+		        "Dreamy", "Apocalypse", "Movie", "Frostbite", "Purple Calm"},
 		Default = "Cinematic",
 		Tooltip = "Preset picker. Default = restore original Lighting. Custom = use whatever the sliders currently say. Other = snap every slider to that preset's values then apply. The 'visual' presets (Dreamy / Movie / Apocalypse / Frostbite / Matrix) use post-effects too (bloom / blur / color correction).",
 		Function = function(val) snapControlsToPreset(val) end,
@@ -39069,6 +39080,267 @@ run(function()
 			end
 		end,
 	})
+end)
+
+-- ============================================================
+-- Spectate POV — follow any player's camera in-game.
+--
+-- Bedwars-aware: dropdown auto-populates with the current player list,
+-- includes "Cycle Living Enemies" mode for quick rotation. Camera
+-- follows the target's HumanoidRootPart via CFrame writes on
+-- RenderStepped (Camera.CameraType=Scriptable). Toggling off restores
+-- the original CameraType + CameraSubject so the player isn't stuck.
+--
+-- Discovered via MCP inspection of
+-- Players.<you>.PlayerScripts.TS.controllers.game.spectate
+-- .spectate-controller — bedwars exposes a Knit SpectateController with
+-- a "SpectatePlayer" remote, but the user doesn't actually need server
+-- permission to *view* another camera. Pure client-side CFrame follow
+-- works fine and doesn't trip anti-cheat.
+-- ============================================================
+run(function()
+	local Players = game:GetService("Players")
+	local RunService = game:GetService("RunService")
+	local UserInputService = game:GetService("UserInputService")
+
+	local SpectatePOV
+	local TargetDD, ModeDD, ViewDD, DistanceSlider, ShowOverlay
+	local origCameraType, origCameraSubject
+	local activeTarget = nil
+	local heartbeatConn
+	local overlayGui
+	local enemyOnly = false
+
+	local function getLocalPlayer() return Players.LocalPlayer end
+	local function getCamera() return workspace.CurrentCamera end
+
+	-- List of currently-alive players that aren't us (or just everyone if
+	-- enemyOnly=false). Returned as {Player} table.
+	local function pickList()
+		local out = {}
+		local me = getLocalPlayer()
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p == me then continue end
+			local char = p.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				if not enemyOnly then table.insert(out, p)
+				else
+					-- "enemy" = on a different team. If teams aren't set up
+					-- (free-for-all), treat everyone as enemy.
+					if not me.Team or not p.Team or me.Team ~= p.Team then
+						table.insert(out, p)
+					end
+				end
+			end
+		end
+		return out
+	end
+
+	-- Refresh the Target dropdown's list to match the current player set.
+	local function refreshTargetList()
+		if not TargetDD then return end
+		local list = {"<auto>"}
+		for _, p in ipairs(pickList()) do
+			table.insert(list, p.Name)
+		end
+		pcall(function()
+			if TargetDD.Object then
+				-- vape dropdown stores its List on the object — best-effort
+				-- swap; if it doesn't support live list change, the existing
+				-- options remain and the user reads the cached names.
+				TargetDD.List = list
+			end
+		end)
+	end
+
+	local function setOverlay(text)
+		if not ShowOverlay or not ShowOverlay.Enabled then
+			if overlayGui then overlayGui:Destroy(); overlayGui = nil end
+			return
+		end
+		if not overlayGui then
+			overlayGui = Instance.new("ScreenGui")
+			overlayGui.Name = "NeptuneSpectateOverlay"
+			overlayGui.ResetOnSpawn = false
+			overlayGui.IgnoreGuiInset = true
+			pcall(function() overlayGui.Parent = game:GetService("CoreGui") end)
+			if not overlayGui.Parent then overlayGui.Parent = getLocalPlayer().PlayerGui end
+			local lbl = Instance.new("TextLabel")
+			lbl.Name = "Label"
+			lbl.Size = UDim2.new(0, 360, 0, 36)
+			lbl.Position = UDim2.new(0.5, -180, 0, 12)
+			lbl.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+			lbl.BackgroundTransparency = 0.25
+			lbl.TextColor3 = Color3.fromRGB(220, 200, 255)
+			lbl.TextSize = 18
+			lbl.Font = Enum.Font.GothamMedium
+			lbl.Text = "Spectating"
+			lbl.Parent = overlayGui
+		end
+		overlayGui.Label.Text = text
+	end
+
+	local function findTarget()
+		local choice = TargetDD and TargetDD.Value or "<auto>"
+		if choice ~= "<auto>" then
+			local p = Players:FindFirstChild(choice)
+			local char = p and p.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then return p end
+			-- fall through to auto
+		end
+		local list = pickList()
+		if #list == 0 then return nil end
+		-- "auto" mode: if we already have an active target and they're still alive, keep them.
+		if activeTarget and activeTarget.Parent and activeTarget.Character then
+			local hum = activeTarget.Character:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then return activeTarget end
+		end
+		return list[1]
+	end
+
+	local function applyCameraFor(target)
+		local cam = getCamera()
+		if not cam then return end
+		local char = target and target.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local head = char and char:FindFirstChild("Head")
+		if not root then return end
+		local mode = ViewDD and ViewDD.Value or "Third Person"
+		local dist = DistanceSlider and DistanceSlider.Value or 8
+		if mode == "First Person" then
+			cam.CFrame = CFrame.new(head and head.Position or root.Position) * CFrame.new(0, 0.5, 0)
+		else
+			cam.CFrame = CFrame.new(root.Position - root.CFrame.LookVector * dist + Vector3.new(0, 4, 0), root.Position)
+		end
+	end
+
+	local function cycle(direction)
+		local list = pickList()
+		if #list == 0 then return end
+		local idx = 1
+		if activeTarget then
+			for i, p in ipairs(list) do if p == activeTarget then idx = i; break end end
+		end
+		idx = ((idx - 1 + direction) % #list) + 1
+		activeTarget = list[idx]
+		if TargetDD and TargetDD.SetValue then pcall(function() TargetDD:SetValue(activeTarget.Name) end) end
+	end
+
+	SpectatePOV = vape.Categories.Render:CreateModule({
+		Name = "Spectate POV",
+		Tooltip = "Follow any player's camera in-game without server permission. Pick a target from the dropdown (auto-populates with live players) or use the cycle keybinds. Pure client-side CFrame follow — anti-cheat safe.",
+		Function = function(state)
+			local cam = getCamera()
+			if state then
+				origCameraType = cam.CameraType
+				origCameraSubject = cam.CameraSubject
+				cam.CameraType = Enum.CameraType.Scriptable
+				refreshTargetList()
+				heartbeatConn = RunService.RenderStepped:Connect(function()
+					if not SpectatePOV.Enabled then return end
+					if ModeDD and ModeDD.Value == "Cycle Every 3s" then
+						if not SpectatePOV._lastCycle then SpectatePOV._lastCycle = tick() end
+						if tick() - SpectatePOV._lastCycle >= 3 then
+							SpectatePOV._lastCycle = tick()
+							cycle(1)
+						end
+					end
+					local target = findTarget()
+					if target ~= activeTarget then activeTarget = target end
+					if target then
+						applyCameraFor(target)
+						setOverlay("Spectating: " .. target.Name .. " (" .. (ViewDD and ViewDD.Value or "Third Person") .. ")")
+					else
+						setOverlay("No target available")
+					end
+				end)
+			else
+				if heartbeatConn then heartbeatConn:Disconnect(); heartbeatConn = nil end
+				if overlayGui then overlayGui:Destroy(); overlayGui = nil end
+				if cam and origCameraType then
+					cam.CameraType = origCameraType
+					if origCameraSubject then cam.CameraSubject = origCameraSubject end
+				end
+				activeTarget = nil
+			end
+		end,
+	})
+
+	TargetDD = SpectatePOV:CreateDropdown({
+		Name = "Target",
+		List = {"<auto>"},
+		Default = "<auto>",
+		Tooltip = "Specific player to follow. <auto> picks the first alive enemy. List refreshes when the module is toggled on.",
+		Function = function() end,
+	})
+
+	ModeDD = SpectatePOV:CreateDropdown({
+		Name = "Mode",
+		List = {"Locked", "Cycle Every 3s"},
+		Default = "Locked",
+		Tooltip = "Locked = stay on the chosen target until they die. Cycle Every 3s = auto-advance to the next alive target every 3 seconds.",
+		Function = function() end,
+	})
+
+	ViewDD = SpectatePOV:CreateDropdown({
+		Name = "View",
+		List = {"Third Person", "First Person"},
+		Default = "Third Person",
+		Tooltip = "First Person = camera at the target's head. Third Person = camera behind them at Distance studs.",
+		Function = function() end,
+	})
+
+	DistanceSlider = SpectatePOV:CreateSlider({
+		Name = "Distance",
+		Min = 3, Max = 30, Default = 8, Suffix = " studs",
+		Tooltip = "How far behind the target the camera sits in Third Person mode.",
+	})
+
+	SpectatePOV:CreateToggle({
+		Name = "Enemy Only",
+		Default = true,
+		Tooltip = "Filter the target list to enemies (different team / FFA = all). Off includes teammates too.",
+		Function = function(state) enemyOnly = state end,
+	})
+
+	ShowOverlay = SpectatePOV:CreateToggle({
+		Name = "Show Overlay",
+		Default = true,
+		Tooltip = "Display a 'Spectating: <name>' label at the top of the screen so you know who you're following.",
+	})
+
+	SpectatePOV:CreateBind({
+		Name = "Cycle Next",
+		Tooltip = "Cycle to the next target in the pick list.",
+		Function = function() if SpectatePOV.Enabled then cycle(1) end end,
+	})
+
+	SpectatePOV:CreateBind({
+		Name = "Cycle Previous",
+		Tooltip = "Cycle to the previous target in the pick list.",
+		Function = function() if SpectatePOV.Enabled then cycle(-1) end end,
+	})
+
+	SpectatePOV:CreateBind({
+		Name = "Toggle View",
+		Tooltip = "Toggle First / Third person on the active target.",
+		Function = function()
+			if not SpectatePOV.Enabled or not ViewDD then return end
+			local new = (ViewDD.Value == "First Person") and "Third Person" or "First Person"
+			pcall(function() ViewDD:SetValue(new) end)
+		end,
+	})
+
+	-- Refresh target list every 5s while module is enabled so dead players
+	-- drop out and new joiners appear.
+	task.spawn(function()
+		while true do
+			if SpectatePOV and SpectatePOV.Enabled then refreshTargetList() end
+			task.wait(5)
+		end
+	end)
 end)
 
 
