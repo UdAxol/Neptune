@@ -343,37 +343,30 @@ do
 		status.TextSize = 12
 		status.TextColor3 = Color3.fromRGB(255, 110, 110)
 
-		-- Extend the card so the HWID row fits, then draw the HWID label +
-		-- copy button at the very bottom. Helps the owner grab their HWID
-		-- without digging into the dev console.
-		card.Size = UDim2.fromOffset(460, 360)
-		card.Position = UDim2.new(0.5, -230, 0.5, -180)
+		-- Show a MASKED HWID for the user to recognise their own device
+		-- without exposing the full string to anyone shoulder-surfing or
+		-- screenshotting. Only the first 6 + last 4 characters are visible,
+		-- middle is dots. NO copy button — copying the full HWID would let
+		-- another player paste your device fingerprint and impersonate
+		-- you on a transfer request. If the owner truly needs the full
+		-- string they can pull it from the local cache file
+		-- (neptune_account.json) or from Supabase.
+		card.Size = UDim2.fromOffset(460, 350)
+		card.Position = UDim2.new(0.5, -230, 0.5, -175)
+		local function maskHWID(h)
+			h = tostring(h or "")
+			if #h <= 14 then return h end
+			return h:sub(1, 6) .. " ... " .. h:sub(-4)
+		end
 		local hwidLbl = Instance.new("TextLabel", card)
-		hwidLbl.Size = UDim2.fromOffset(330, 26)
-		hwidLbl.Position = UDim2.fromOffset(20, 300)
-		hwidLbl.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
-		hwidLbl.BorderSizePixel = 0
-		hwidLbl.Text = "  HWID: " .. tostring(currentHWID)
-		hwidLbl.TextXAlignment = Enum.TextXAlignment.Left
+		hwidLbl.Size = UDim2.fromOffset(420, 22)
+		hwidLbl.Position = UDim2.fromOffset(20, 304)
+		hwidLbl.BackgroundTransparency = 1
+		hwidLbl.Text = "HWID: " .. maskHWID(currentHWID)
+		hwidLbl.TextXAlignment = Enum.TextXAlignment.Center
 		hwidLbl.Font = Enum.Font.Code
 		hwidLbl.TextSize = 11
-		hwidLbl.TextColor3 = Color3.fromRGB(150, 170, 220)
-		do local c = Instance.new("UICorner", hwidLbl); c.CornerRadius = UDim.new(0, 6) end
-		local copyBtn = Instance.new("TextButton", card)
-		copyBtn.Size = UDim2.fromOffset(80, 26)
-		copyBtn.Position = UDim2.fromOffset(360, 300)
-		copyBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 130)
-		copyBtn.BorderSizePixel = 0
-		copyBtn.Text = "Copy HWID"
-		copyBtn.Font = Enum.Font.GothamBold
-		copyBtn.TextSize = 11
-		copyBtn.TextColor3 = Color3.new(1, 1, 1)
-		do local c = Instance.new("UICorner", copyBtn); c.CornerRadius = UDim.new(0, 6) end
-		copyBtn.MouseButton1Click:Connect(function()
-			pcall(function() setclipboard(tostring(currentHWID)) end)
-			copyBtn.Text = "Copied!"
-			task.spawn(function() task.wait(1.2); pcall(function() copyBtn.Text = "Copy HWID" end) end)
-		end)
+		hwidLbl.TextColor3 = Color3.fromRGB(110, 130, 180)
 
 		local done = false
 		btnRedeem.MouseButton1Click:Connect(function()
