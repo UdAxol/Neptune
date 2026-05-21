@@ -31324,6 +31324,10 @@ run(function()
 		if _G.NeptuneSilentAuraCustomHR and _G.NeptuneSilentAuraCustomHR.Enabled
 		   and _G.NeptuneSilentAuraHRSlider and _G.NeptuneSilentAuraHRSlider.Value then
 			hitreg = _G.NeptuneSilentAuraHRSlider.Value
+			-- Roblox hard-caps hit-reg at 36. At/above the cap, skip the throttle
+			-- entirely so the swing always passes (mirrors how aero's Killaura
+			-- CustomHitReg slider behaves at the same cap).
+			if hitreg >= 36 then return true end
 		else
 			hitreg = math.random(340, 350) / 10
 		end
@@ -31417,8 +31421,8 @@ run(function()
 	SilentAura:CreateToggle({Name = 'Show FOV', Default = false, Tooltip = 'Draw a circle on-screen showing the silent-aura targeting radius.'})
 	SilentAura:CreateToggle({Name = 'Notify on Kill', Default = false, Tooltip = 'Pop a Neptune toast when a silent-aura swing lands a kill.'})
 	SilentAura:CreateSlider({Name = 'Target Limit', Min = 1, Max = 6, Default = 1, Tooltip = 'Max simultaneous targets the silent aura will engage per swing tick.'})
-	_G.NeptuneSilentAuraCustomHR = SilentAura:CreateToggle({Name = 'Custom Hit Reg', Default = false, Tooltip = 'Override the default randomised hit registration rate with your own value. Off = vanilla (~34 CPS).'})
-	_G.NeptuneSilentAuraHRSlider = SilentAura:CreateSlider({Name = 'Hit Reg', Min = 1, Max = 40, Default = 34, Decimal = 1, Suffix = ' CPS', Tooltip = 'Effective swings-per-second the silent aura attempts when Custom Hit Reg is on. Higher = more aggressive but more detectable.'})
+	_G.NeptuneSilentAuraCustomHR = SilentAura:CreateToggle({Name = 'Custom Hit Reg', Default = false, Tooltip = 'Override the default randomised hit-reg value. Off = vanilla (jitters 34-35). Roblox caps the effective hit-reg parameter at 36.'})
+	_G.NeptuneSilentAuraHRSlider = SilentAura:CreateSlider({Name = 'Hit Reg', Min = 1, Max = 36, Default = 30, Tooltip = 'Roblox hit-registration parameter used to throttle silent hits. Hard-capped at 36 by the server; above that the throttle short-circuits and never blocks. Higher = more aggressive but detectable.'})
 	_G.NeptuneSilentAuraSwingOnly = SilentAura:CreateToggle({Name = 'Swing Only', Default = false, Tooltip = 'Play the swing animation cadence but never send a hit packet. Strictly legit-looking — no damage will land.'})
 
 
