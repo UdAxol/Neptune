@@ -196,11 +196,8 @@ do
 		return "unknown-" .. tostring(lp.UserId)
 	end
 	local currentHWID = getHWID()
-	-- Print prominently so the owner can grab it on first run
-	print(string.rep("=", 60))
-	print("[NEPTUNE] Your HWID: " .. currentHWID)
-	print("[NEPTUNE] Copy this into OWNER_HWIDS in main.lua to bypass the key gate.")
-	print(string.rep("=", 60))
+	-- HWID is shown in the key-gate GUI (bottom row) — see far below — so the
+	-- owner can grab it with a Copy button instead of digging into console.
 
 	-- Owner HWID bypass — runs BEFORE any network call so even with Supabase
 	-- down the owner loads. Username-independent (Roblox username changes
@@ -345,6 +342,38 @@ do
 		status.Font = Enum.Font.Gotham
 		status.TextSize = 12
 		status.TextColor3 = Color3.fromRGB(255, 110, 110)
+
+		-- Extend the card so the HWID row fits, then draw the HWID label +
+		-- copy button at the very bottom. Helps the owner grab their HWID
+		-- without digging into the dev console.
+		card.Size = UDim2.fromOffset(460, 360)
+		card.Position = UDim2.new(0.5, -230, 0.5, -180)
+		local hwidLbl = Instance.new("TextLabel", card)
+		hwidLbl.Size = UDim2.fromOffset(330, 26)
+		hwidLbl.Position = UDim2.fromOffset(20, 300)
+		hwidLbl.BackgroundColor3 = Color3.fromRGB(8, 12, 28)
+		hwidLbl.BorderSizePixel = 0
+		hwidLbl.Text = "  HWID: " .. tostring(currentHWID)
+		hwidLbl.TextXAlignment = Enum.TextXAlignment.Left
+		hwidLbl.Font = Enum.Font.Code
+		hwidLbl.TextSize = 11
+		hwidLbl.TextColor3 = Color3.fromRGB(150, 170, 220)
+		do local c = Instance.new("UICorner", hwidLbl); c.CornerRadius = UDim.new(0, 6) end
+		local copyBtn = Instance.new("TextButton", card)
+		copyBtn.Size = UDim2.fromOffset(80, 26)
+		copyBtn.Position = UDim2.fromOffset(360, 300)
+		copyBtn.BackgroundColor3 = Color3.fromRGB(60, 80, 130)
+		copyBtn.BorderSizePixel = 0
+		copyBtn.Text = "Copy HWID"
+		copyBtn.Font = Enum.Font.GothamBold
+		copyBtn.TextSize = 11
+		copyBtn.TextColor3 = Color3.new(1, 1, 1)
+		do local c = Instance.new("UICorner", copyBtn); c.CornerRadius = UDim.new(0, 6) end
+		copyBtn.MouseButton1Click:Connect(function()
+			pcall(function() setclipboard(tostring(currentHWID)) end)
+			copyBtn.Text = "Copied!"
+			task.spawn(function() task.wait(1.2); pcall(function() copyBtn.Text = "Copy HWID" end) end)
+		end)
 
 		local done = false
 		btnRedeem.MouseButton1Click:Connect(function()
