@@ -38286,6 +38286,104 @@ run(function()
 end)
 
 -- ============================================================
+-- TP Tools — replaces the (broken-in-bedwars) GodMode module.
+--
+-- Bedwars server filters Humanoid.WalkSpeed / JumpPower / MaxHealth /
+-- Health writes — those just bounce back, so the old GodMode was no-op.
+-- CFrame teleports DO work because the server validates position with
+-- a tolerance window: small jumps (~3-10 studs) pass anti-cheat, larger
+-- jumps may trigger rubber-band or kick. We keep the default distance
+-- conservative (6 studs) so users have a working clutch tool.
+-- ============================================================
+run(function()
+	local TPTools
+	local Distance, NotifyOnTP
+
+	local function getRoot()
+		local plr = game:GetService("Players").LocalPlayer
+		local char = plr and plr.Character
+		return char and char:FindFirstChild("HumanoidRootPart")
+	end
+	local function tp(offset, label)
+		local root = getRoot()
+		if not root then return end
+		local ok = pcall(function() root.CFrame = root.CFrame + offset end)
+		if ok and NotifyOnTP and NotifyOnTP.Enabled and shared.vape and shared.vape.CreateNotification then
+			shared.vape:CreateNotification("TP Tools", "Teleported " .. label .. " (" .. tostring(math.floor(offset.Magnitude)) .. " studs)", 2)
+		end
+	end
+
+	TPTools = vape.Categories.Blatant:CreateModule({
+		Name = "TP Tools",
+		Tooltip = "Vertical + horizontal teleport keybinds. Replaces the old GodMode (Humanoid writes are server-filtered in bedwars). CFrame teleports work within the server's tolerance window — keep TP Distance under ~10 studs to avoid rubber-band / kick.",
+		Function = function() end,
+	})
+
+	Distance = TPTools:CreateSlider({
+		Name = "TP Distance",
+		Min = 1, Max = 30, Default = 6, Suffix = " studs",
+		Tooltip = "Studs moved per TP. Server tolerance is ~10 studs; above that you may get rubber-banded or kicked.",
+	})
+
+	NotifyOnTP = TPTools:CreateToggle({
+		Name = "Notify On TP",
+		Default = false,
+		Tooltip = "Pop a tiny Neptune toast each time a TP fires. Handy for confirming the keybind is bound but spammy in practice.",
+	})
+
+	TPTools:CreateBind({
+		Name = "TP Up",
+		Tooltip = "Teleport upward by TP Distance.",
+		Function = function() tp(Vector3.new(0, Distance and Distance.Value or 6, 0), "up") end,
+	})
+	TPTools:CreateBind({
+		Name = "TP Down",
+		Tooltip = "Teleport downward by TP Distance.",
+		Function = function() tp(Vector3.new(0, -(Distance and Distance.Value or 6), 0), "down") end,
+	})
+	TPTools:CreateBind({
+		Name = "TP Forward",
+		Tooltip = "Teleport in the direction the camera is facing (XZ only — horizontal only, no flight).",
+		Function = function()
+			local root = getRoot()
+			if not root then return end
+			local cam = workspace.CurrentCamera
+			local look = cam and cam.CFrame.LookVector * Vector3.new(1, 0, 1)
+			if not look or look.Magnitude == 0 then return end
+			tp(look.Unit * (Distance and Distance.Value or 6), "forward")
+		end,
+	})
+	TPTools:CreateBind({
+		Name = "TP Back",
+		Tooltip = "Teleport opposite the camera-facing direction (XZ only).",
+		Function = function()
+			local root = getRoot()
+			if not root then return end
+			local cam = workspace.CurrentCamera
+			local look = cam and cam.CFrame.LookVector * Vector3.new(1, 0, 1)
+			if not look or look.Magnitude == 0 then return end
+			tp(-look.Unit * (Distance and Distance.Value or 6), "back")
+		end,
+	})
+	TPTools:CreateBind({
+		Name = "TP To Cursor",
+		Tooltip = "Teleport to wherever your mouse is pointing (raycast to surface). Big jumps may rubber-band.",
+		Function = function()
+			local plr = game:GetService("Players").LocalPlayer
+			local mouse = plr and plr:GetMouse()
+			local root = getRoot()
+			if not (mouse and mouse.Hit and root) then return end
+			local target = mouse.Hit.Position + Vector3.new(0, 3, 0)
+			local dist = (target - root.Position).Magnitude
+			pcall(function() root.CFrame = CFrame.new(target) end)
+			if NotifyOnTP and NotifyOnTP.Enabled and shared.vape and shared.vape.CreateNotification then
+				shared.vape:CreateNotification("TP Tools", "TP'd to cursor (" .. tostring(math.floor(dist)) .. " studs)", 2)
+			end
+		end,
+	})
+end)
+
+-- ============================================================
 -- N. Atmosphere — preset lighting profiles for visual flavor
 -- ============================================================
 run(function()

@@ -9105,8 +9105,16 @@ end)
 ]]
 
 
+-- GodMode REMOVED — replaced by Neptune TP Tools in the bedwars addon.
+-- The old GodMode force-wrote Humanoid.WalkSpeed / JumpPower / MaxHealth
+-- / Health every Heartbeat, but Roblox bedwars (and most FilteringEnabled
+-- games) bounce those writes back from the server, so it was a no-op.
+-- TP Tools uses CFrame teleports which actually work within the server's
+-- tolerance window. See _dev/neptune_premium_addon.luau for the new
+-- module definition.
+--[[
 run(function()
-	-- ===== God Mode =====
+	-- ===== God Mode (DISABLED — see TP Tools in the bedwars addon) =====
 	local cloneref = cloneref or function(o) return o end
 	local Players = cloneref(game:GetService("Players"))
 	local RunService = cloneref(game:GetService("RunService"))
@@ -9171,4 +9179,5 @@ run(function()
 	God:CreateToggle({Name = "Local ForceField", Enabled = false, Function = function(s) cfg.forceField = s end})
 	God:CreateToggle({Name = "Safe Caps", Enabled = true, Tooltip = "speed<=60, jump<=150", Function = function(s) cfg.safe = s end})
 end)
+]]
 
