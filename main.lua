@@ -170,25 +170,50 @@ do
 	local SUPABASE_ANON_GATE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impma2h1enBxeXB0dGFkZGdia2luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjUzMzksImV4cCI6MjA5NDgwMTMzOX0.O_A2a7uVN8MVajlewMsb0dXqAz4sir4HiYvKTb0cp1o"
 	local CACHE_GATE = "neptune_account.json"
 	local DISCORD_GATE = "https://discord.gg/axM8rzg5"
-	-- OWNER accounts — these bypass the key gate entirely. The owner shouldn't
-	-- have to redeem to use their own product. Matched against username
-	-- (case-insensitive). Add more here if you have alt accounts.
-	local OWNER_USERNAMES = { "bl3tant", "UdAxol", "theoriginalaxol" }
+	-- OWNER HWIDS — hardware-id-based bypass. Hardcode your machine's HWID
+	-- here and you'll auto-bypass the gate forever, no key needed. HWID is
+	-- stable per-machine across roblox installs / username changes so this
+	-- is far stronger than the old username check.
+	--
+	-- First-time setup: run the loader once, look in console for
+	--   "[NEPTUNE] Your HWID: <something>"
+	-- copy that string into the array below, push, re-inject.
+	local OWNER_HWIDS = {
+		-- "your_hwid_here",
+	}
 	local lp = playersService.LocalPlayer
 	local httpG = httpService
-	-- Owner bypass: short-circuit before any network call so even if Supabase
-	-- is down the owner still loads.
-	do
-		local nameLower = tostring(lp.Name):lower()
-		for _, ownerName in ipairs(OWNER_USERNAMES) do
-			if nameLower == ownerName:lower() then
-				getgenv()._NEPTUNE_LIFETIME = true
-				pcall(writefile, CACHE_GATE, httpService:JSONEncode({
-					active = true, tier = "premium", is_lifetime = true, owner = true,
-				}))
-				warn("[NEPTUNE] owner account detected (" .. lp.Name .. ") — key gate bypassed, granted Premium")
-				return  -- skip the rest of the gate block entirely
-			end
+
+	-- HWID gatherer — tries executor's gethwid() first, falls back to
+	-- Roblox's RbxAnalyticsService:GetClientId() (stable per-install).
+	local function getHWID()
+		if type(gethwid) == "function" then
+			local ok, h = pcall(gethwid)
+			if ok and h and h ~= "" then return tostring(h) end
+		end
+		local ok, c = pcall(function() return game:GetService("RbxAnalyticsService"):GetClientId() end)
+		if ok and c and c ~= "" then return tostring(c) end
+		return "unknown-" .. tostring(lp.UserId)
+	end
+	local currentHWID = getHWID()
+	-- Print prominently so the owner can grab it on first run
+	print(string.rep("=", 60))
+	print("[NEPTUNE] Your HWID: " .. currentHWID)
+	print("[NEPTUNE] Copy this into OWNER_HWIDS in main.lua to bypass the key gate.")
+	print(string.rep("=", 60))
+
+	-- Owner HWID bypass — runs BEFORE any network call so even with Supabase
+	-- down the owner loads. Username-independent (Roblox username changes
+	-- don't lose access).
+	for _, ownerHwid in ipairs(OWNER_HWIDS) do
+		if currentHWID == ownerHwid then
+			getgenv()._NEPTUNE_LIFETIME = true
+			pcall(writefile, CACHE_GATE, httpService:JSONEncode({
+				active = true, tier = "premium", is_lifetime = true, owner = true,
+				hwid = currentHWID,
+			}))
+			warn("[NEPTUNE] owner HWID matched — key gate bypassed, granted Premium")
+			return
 		end
 	end
 	local reqG = (syn and syn.request) or (http and http.request) or http_request or request
@@ -213,7 +238,12 @@ do
 	end
 
 	local function checkStatus()
-		local r = gateCall("/rest/v1/rpc/get_user_premium", { p_user_id = lp.UserId }, "POST")
+		-- Pass current HWID so server can enforce device-lock and return
+		-- "device_locked" if this isn't the HWID the key was originally
+		-- bound to. Older RPC signatures that don't accept p_hwid will
+		-- ignore the extra param.
+		local r = gateCall("/rest/v1/rpc/get_user_premium",
+			{ p_user_id = lp.UserId, p_hwid = currentHWID }, "POST")
 		if type(r) == "table" and r[1] then return r[1].active == true, r[1] end
 		return false, nil
 	end
@@ -222,6 +252,7 @@ do
 		if not key or #key < 8 then return false, "key too short" end
 		local r = gateCall("/rest/v1/rpc/redeem_key", {
 			p_user_id = lp.UserId, p_username = lp.Name, p_key = key:gsub("%s+", ""),
+			p_hwid = currentHWID,
 		}, "POST")
 		if type(r) ~= "table" or not r[1] then return false, "no response" end
 		if not r[1].success then return false, r[1].message or "invalid" end
@@ -332,12 +363,16 @@ do
 				status.TextColor3 = Color3.fromRGB(80, 220, 120)
 				task.wait(0.7); done = true
 			else
-				-- "Key already used" rejection — could mean THIS user already
-				-- redeemed it (deleted local cache, trying again) OR another
-				-- user consumed it. Re-check user_premium: if THIS user still
-				-- has active premium from a previous redemption, grant access.
 				local msg = tostring(info)
-				if msg:lower():find("already") or msg:lower():find("used") or msg:lower():find("consumed") then
+				local low = msg:lower()
+				-- "device_locked" — key was bound to a different HWID. Tell
+				-- the user to contact the owner for a transfer.
+				if low:find("device") or low:find("hwid") or low:find("locked") then
+					status.Text = "this key is locked to a different device — DM owner on Discord for transfer"
+					status.TextColor3 = Color3.fromRGB(255, 180, 80)
+				-- "Already used by THIS user" — they consumed it before,
+				-- cache deleted. Re-fetch premium status; if active, grant.
+				elseif low:find("already") or low:find("used") or low:find("consumed") then
 					status.Text = "key already redeemed — checking your premium status..."
 					status.TextColor3 = Color3.fromRGB(180, 180, 180)
 					local liveActive, row = checkStatus()
@@ -347,15 +382,19 @@ do
 							tier = row and row.tier or "premium",
 							expires_unix = row and row.expires_unix or nil,
 							is_lifetime = row and row.is_lifetime or false,
+							hwid = currentHWID,
 						}))
 						status.Text = "verified — premium restored from your account"
 						status.TextColor3 = Color3.fromRGB(80, 220, 120)
 						task.wait(0.7); done = true
 						return
 					end
+					status.Text = "rejected: " .. msg
+					status.TextColor3 = Color3.fromRGB(255, 110, 110)
+				else
+					status.Text = "rejected: " .. msg
+					status.TextColor3 = Color3.fromRGB(255, 110, 110)
 				end
-				status.Text = "rejected: " .. tostring(info)
-				status.TextColor3 = Color3.fromRGB(255, 110, 110)
 			end
 		end)
 		btnGetKey.MouseButton1Click:Connect(function()
