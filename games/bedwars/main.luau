@@ -10,33 +10,36 @@ local run = function(func)
 end
 getgenv()._neptune_run = run
 
--- NEPTUNE bedwars merge strategy (revised — "neptune standalone wins"):
+-- NEPTUNE bedwars: FULL UNIVERSAL WIPE.
 --
--- Rule: for every Name neptune is going to register (AimAssist, Reach,
--- AutoClicker, TriggerBot, SilentAura, Killaura, BedESP, etc.), DESTROY
--- the universal module of that Name first. That way neptune registers fresh
--- with ONLY its own sub-features — no universal "Range / Chance / Mode"
--- sliders bleeding into neptune's Reach.
+-- Per user: "Atp remove all universal." Every single module universal.lua
+-- registered in a user-facing category gets wiped before neptune loads. No
+-- ESP / Chams / Tracers / Arrows / Search / Waypoints / Health / PlayerModel
+-- / GamingChair / nothing. If neptune or neptune doesn't have a bedwars version
+-- it's gone — bedwars stands on its own.
 --
--- Universal-UNIQUE modules (ESP, Chams, Tracers, Arrows, Search,
--- Waypoints, Health, PlayerModel, GamingChair, plus our 5 custom
--- modules) stay untouched because neptune won't register over them.
---
--- The list of "neptune names" is built at build-time from neptune source so it
--- always matches what's actually about to register — no hand-maintenance.
+-- vape.Libraries (entitylib, targetinfo, prediction, hash, etc.) is left
+-- intact because neptune's prelude reads from it. Only registered MODULES get
+-- nuked. Categories themselves stay (Combat / Blatant / Render etc. are
+-- containers, not modules).
 do
     local _v = shared.vape
     if _v and _v.Modules and type(_v.Remove) == 'function' then
-        local _aeroNames = {"AC MOD View","AimAssist","AnimChopper","AntiAFK","AntiEffects","AntiFall","AntiMagma","AutoBank","AutoBeekeeper","AutoBuildUp","AutoBuilder","AutoBuy","AutoCaitlyn","AutoChargeBow","AutoClicker","AutoConsume","AutoCounter","AutoDavey","AutoDrill","AutoEldertree","AutoEmber","AutoEmote","AutoFarmer","AutoFisher","AutoGinger","AutoGrove","AutoHannah","AutoHonor","AutoHotbar","AutoKaida","AutoKaliyah","AutoKit","AutoLani","AutoLasso","AutoLucia","AutoMartin","AutoMelody","AutoMetal","AutoMushroom","AutoNahila","AutoNyx","AutoPearl","AutoPlay","AutoPotion","AutoRelease","AutoReset","AutoShoot","AutoStar","AutoTool","AutoUma","AutoVanessa","AutoVoidDrop","AutoWarden","AutoWhisper","AutoZeno","BedAlarm","BedAssist","BedESP","BedPlates","BeehiveSpy","BetterDavey","BlockCPSRemover","BlockIn","Breaker","ChestSteal","ClearMatchHistory","Clutch","CustomCursor","DRBedAlarm","Damage Indicator","DaveyAim","Desync","DisableStreamer","ElektraExtender","FPSBoost","FastBreak","FastConsume","FastDrop","FishermanESP","FishermanSpy","Fly","FrameBuffer","Fullbright","GeneratorESP","GrandKillaura","GrimReaperFix","Headless","HitBoxes","HitColor","HitFix","InfKrystal","Interface","InvisibleCursor","JadeCooldown","KeepSprint","KillEffect","Killaura","KitESP","KitRender","KnockbackDisplace","Leave Party","LegacyAnimation","LongJump","LootESP","LuciaSpy","MiloDisguise","MotionBlur","MouseTP","NameTagSpoofer","NameTags","NightmareEmote","NoCollision","NoFall","NoNameTag","NoSlowdown","OG4v4v4v4","OGNametags","PickupRange","PlayerAttach","PotatoMode","ProjAura","ProjectileAimbot","ProximityExtender","ProximityPromptDuration","RavenTP","Reach","RegentCooldown","RemoveNeon","RemovePlayerLevelUI","Scaffold","SetPlayerLevel","ShadowRemover","ShopTierBypass","SilentAura","SkinChanger","Speed","Sprint","StaffDetector","StaffHUD","StorageESP","TaxRemover","TrapDisabler","TrapESP","TriggerBot","Velocity","ViewMatchHistory","Viewmodel","WhiteHits","WinEffect","YuziDasher"}
-        local _removed = 0
-        for _, _name in ipairs(_aeroNames) do
-            if _v.Modules[_name] then
-                local ok = pcall(function() _v:Remove(_name) end)
-                if ok then _removed = _removed + 1 end
+        local _wipeCats = {Combat=true,Blatant=true,Render=true,Legit=true,
+                           Utility=true,World=true,Inventory=true,
+                           Minigames=true,Kits=true,BoostFPS=true}
+        local _toRemove = {}
+        for _name, _mod in pairs(_v.Modules) do
+            if type(_mod) == 'table' and _mod.Category and _wipeCats[_mod.Category] then
+                _toRemove[#_toRemove+1] = _name
             end
         end
-        warn('[NEPTUNE-DIAG] selectively wiped ' .. tostring(_removed)
-             .. ' universal modules whose names neptune will re-register')
+        for _, _name in ipairs(_toRemove) do
+            pcall(function() _v:Remove(_name) end)
+        end
+        warn('[NEPTUNE-DIAG] full universal wipe: removed ' .. tostring(#_toRemove)
+             .. ' modules across Combat/Blatant/Render/Legit/Utility/World/'
+             .. 'Inventory/Minigames/Kits/BoostFPS — neptune registers solo from here')
     end
 end
 
