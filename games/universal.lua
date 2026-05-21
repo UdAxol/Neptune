@@ -1,72 +1,17 @@
 -- ====================================================================
--- NEPTUNE merge-aware CreateModule patch — bedwars-wins strategy.
+-- NEPTUNE merge-aware CreateModule patch — REMOVED.
 --
--- The GUI's per-category :CreateModule(modulesettings) FIRST calls
--- mainapi:Remove(modulesettings.Name) which destroys any module that
--- already exists with that name. We wrap each category's CreateModule
--- so that on dupe-by-name we:
---   1. Return the EXISTING moduleapi (so subsequent :CreateToggle /
---      :CreateSlider / etc calls attach to it — feature merge).
---   2. SWAP modulesettings.Function to the new (bedwars/aero) one so
---      toggling the module gets the bedwars-tuned behavior instead of
---      universal's generic one. This is the "bedwars wins" rule.
---   3. Drop the universal Tooltip in favour of the new one (more
---      specific) when there is one.
+-- Per user direction: "DONT FUCKING MERGE anything from universal unless
+-- vapev4 had it or its not on vapev4 regular". The selective-wipe in
+-- bedwars/main.luau now destroys every universal module whose Name aero
+-- is about to re-register BEFORE aero loads, so aero registers solo and
+-- the framework's default mainapi:Remove() behavior takes care of any
+-- residual collision. Universal-unique modules (ESP / Chams / Tracers /
+-- Arrows / Search / Waypoints / Health / PlayerModel / GamingChair plus
+-- our 5 custom ones) stay because aero won't re-register their names.
 --
--- Net effect: when aero/catv6/addon try to register a module that
--- universal already registered (same Name), aero's bedwars-tuned
--- Function wins, but BOTH sets of sub-features stay visible under one
--- merged module entry. Universal-unique modules (ESP, Chams, Tracers,
--- Arrows, Search, Waypoints, Health, etc.) that aero doesn't ship are
--- preserved untouched.
---
--- We stash the modulesettings table reference on the moduleapi
--- (._neptuneModulesettings) so the swap has access to the closure-
--- captured table without us needing to monkey-patch the framework's
--- internals.
+-- No CreateModule wrapping needed anymore.
 -- ====================================================================
-do
-    local function wrapCategory(cat, mainapi)
-        if not cat or cat._neptuneMergeReady or type(cat.CreateModule) ~= 'function' then return end
-        cat._neptuneMergeReady = true
-        local orig = cat.CreateModule
-        cat.CreateModule = function(self, modulesettings)
-            local existing = mainapi.Modules and mainapi.Modules[modulesettings.Name]
-            if existing and existing._neptuneModulesettings then
-                local origSettings = existing._neptuneModulesettings
-                if modulesettings.Function then
-                    origSettings.Function = modulesettings.Function
-                end
-                if modulesettings.Tooltip then
-                    origSettings.Tooltip = modulesettings.Tooltip
-                end
-                return existing
-            end
-            local moduleapi = orig(self, modulesettings)
-            if moduleapi then
-                moduleapi._neptuneModulesettings = modulesettings
-            end
-            return moduleapi
-        end
-    end
-    local vape = shared.vape
-    if vape and vape.Categories then
-        for _, cat in pairs(vape.Categories) do
-            wrapCategory(cat, vape)
-        end
-        local origCreate = vape.CreateCategory
-        if type(origCreate) == 'function' then
-            vape.CreateCategory = function(self, settings)
-                local cat = origCreate(self, settings)
-                wrapCategory(cat, vape)
-                if vape.Categories and vape.Categories[settings.Name] then
-                    wrapCategory(vape.Categories[settings.Name], vape)
-                end
-                return cat
-            end
-        end
-    end
-end
 
 local loadstring = function(...)
 	local res, err = loadstring(...)

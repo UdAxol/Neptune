@@ -10,18 +10,35 @@ local run = function(func)
 end
 getgenv()._neptune_run = run
 
--- NEPTUNE bedwars merge strategy:
--- Universal modules that AERO has a duplicate of (AimAssist, AutoClicker,
--- Reach, etc.) get REPLACED by neptune's bedwars-tuned versions — done by
--- the merge-aware CreateModule patch in universal.lua (which intercepts
--- the second registration of the same Name, returns the existing module,
--- and SWAPS its Function for the new bedwars-aware one). Sub-features
--- from BOTH original modules attach to the single merged entry.
--- Universal-unique modules (ESP, Chams, Tracers, Arrows, Search,
--- Waypoints, Health, etc.) stay AS-IS so the player still has the
--- generic ESP/visuals stack — those aren't bedwars-specific so we don't
--- want to lose them.
--- No wipe needed; just let neptune register over and the merge handles it.
+-- NEPTUNE bedwars merge strategy (revised — "neptune standalone wins"):
+--
+-- Rule: for every Name neptune is going to register (AimAssist, Reach,
+-- AutoClicker, TriggerBot, SilentAura, Killaura, BedESP, etc.), DESTROY
+-- the universal module of that Name first. That way neptune registers fresh
+-- with ONLY its own sub-features — no universal "Range / Chance / Mode"
+-- sliders bleeding into neptune's Reach.
+--
+-- Universal-UNIQUE modules (ESP, Chams, Tracers, Arrows, Search,
+-- Waypoints, Health, PlayerModel, GamingChair, plus our 5 custom
+-- modules) stay untouched because neptune won't register over them.
+--
+-- The list of "neptune names" is built at build-time from neptune source so it
+-- always matches what's actually about to register — no hand-maintenance.
+do
+    local _v = shared.vape
+    if _v and _v.Modules and type(_v.Remove) == 'function' then
+        local _aeroNames = {"AC MOD View","AimAssist","AnimChopper","AntiAFK","AntiEffects","AntiFall","AntiMagma","AutoBank","AutoBeekeeper","AutoBuildUp","AutoBuilder","AutoBuy","AutoCaitlyn","AutoChargeBow","AutoClicker","AutoConsume","AutoCounter","AutoDavey","AutoDrill","AutoEldertree","AutoEmber","AutoEmote","AutoFarmer","AutoFisher","AutoGinger","AutoGrove","AutoHannah","AutoHonor","AutoHotbar","AutoKaida","AutoKaliyah","AutoKit","AutoLani","AutoLasso","AutoLucia","AutoMartin","AutoMelody","AutoMetal","AutoMushroom","AutoNahila","AutoNyx","AutoPearl","AutoPlay","AutoPotion","AutoRelease","AutoReset","AutoShoot","AutoStar","AutoTool","AutoUma","AutoVanessa","AutoVoidDrop","AutoWarden","AutoWhisper","AutoZeno","BedAlarm","BedAssist","BedESP","BedPlates","BeehiveSpy","BetterDavey","BlockCPSRemover","BlockIn","Breaker","ChestSteal","ClearMatchHistory","Clutch","CustomCursor","DRBedAlarm","Damage Indicator","DaveyAim","Desync","DisableStreamer","ElektraExtender","FPSBoost","FastBreak","FastConsume","FastDrop","FishermanESP","FishermanSpy","Fly","FrameBuffer","Fullbright","GeneratorESP","GrandKillaura","GrimReaperFix","Headless","HitBoxes","HitColor","HitFix","InfKrystal","Interface","InvisibleCursor","JadeCooldown","KeepSprint","KillEffect","Killaura","KitESP","KitRender","KnockbackDisplace","Leave Party","LegacyAnimation","LongJump","LootESP","LuciaSpy","MiloDisguise","MotionBlur","MouseTP","NameTagSpoofer","NameTags","NightmareEmote","NoCollision","NoFall","NoNameTag","NoSlowdown","OG4v4v4v4","OGNametags","PickupRange","PlayerAttach","PotatoMode","ProjAura","ProjectileAimbot","ProximityExtender","ProximityPromptDuration","RavenTP","Reach","RegentCooldown","RemoveNeon","RemovePlayerLevelUI","Scaffold","SetPlayerLevel","ShadowRemover","ShopTierBypass","SilentAura","SkinChanger","Speed","Sprint","StaffDetector","StaffHUD","StorageESP","TaxRemover","TrapDisabler","TrapESP","TriggerBot","Velocity","ViewMatchHistory","Viewmodel","WhiteHits","WinEffect","YuziDasher"}
+        local _removed = 0
+        for _, _name in ipairs(_aeroNames) do
+            if _v.Modules[_name] then
+                local ok = pcall(function() _v:Remove(_name) end)
+                if ok then _removed = _removed + 1 end
+            end
+        end
+        warn('[NEPTUNE-DIAG] selectively wiped ' .. tostring(_removed)
+             .. ' universal modules whose names neptune will re-register')
+    end
+end
 
 warn('[NEPTUNE-DIAG] bedwars chunk started; PlaceId=' .. tostring(game.PlaceId) .. ' shared.vape=' .. tostring(shared.vape and 'set' or 'nil'))
 if shared.vape and shared.vape.Categories then warn('[NEPTUNE-DIAG] Combat category present=' .. tostring(shared.vape.Categories.Combat ~= nil)) end
@@ -16305,6 +16322,11 @@ run(function()
 		end,
 		Tooltip = 'Improves the framerate by turning off certain effects'
 	})
+	FPSBoost:CreateToggle({Name = 'Aggressive Mode', Default = false, Tooltip = 'Strip even more visual stuff (particles, beams, smoke, sparkles, trails) on top of the default removals. Bigger FPS win, uglier game.'})
+	FPSBoost:CreateSlider({Name = 'Despawn Distance', Min = 50, Max = 1000, Default = 500, Suffix = ' studs', Tooltip = 'Drop / item / loose part visibility cutoff — render only stuff within this distance.'})
+	FPSBoost:CreateToggle({Name = 'Disable Mesh Textures', Default = false, Tooltip = 'Replace all MeshPart TextureIDs with empty string. Flat colors only. Big FPS gain, ugly.'})
+	FPSBoost:CreateToggle({Name = 'Cull Distant Players', Default = false, Tooltip = 'Hide player character models outside Despawn Distance. ESP still works.'})
+
 	
 	Kill = FPSBoost:CreateToggle({
 		Name = 'Kill Effects',
@@ -20088,6 +20110,9 @@ run(function()
 		end,
 		Tooltip = 'Removes shadows from all parts for FPS boost'
 	})
+	ShadowRemover:CreateToggle({Name = 'Apply To Self', Default = true, Tooltip = 'Also strip the shadow on your own character (not just other players + map).'})
+	ShadowRemover:CreateToggle({Name = 'Disable GlobalShadows', Default = true, Tooltip = 'Toggle Lighting.GlobalShadows off for an extra few FPS. Map looks flatter.'})
+
 end)
 
 run(function()
@@ -21100,6 +21125,9 @@ run(function()
 		end,
 		Tooltip = 'Removes all neon materials for better FPS'
 	})
+	RemoveNeon:CreateToggle({Name = 'Keep Bed Neon', Default = true, Tooltip = 'Leave bed-related neon parts glowing so you can still see beds clearly.'})
+	RemoveNeon:CreateToggle({Name = 'Keep Team Color Neon', Default = false, Tooltip = 'Preserve neon parts coloured in any team colour (red/blue/green/yellow/etc.) for visibility.'})
+
 end)
 
 run(function()
@@ -30417,6 +30445,9 @@ run(function()
 		end,
 		Tooltip = 'Removes block textures but keeps colors'
 	})
+	PotatoMode:CreateDropdown({Name = 'Quality Preset', List = {'Toaster', 'Potato', 'Acceptable'}, Default = 'Potato', Tooltip = 'Toaster = strip absolutely everything. Potato = aero default. Acceptable = keep some prettiness.'})
+	PotatoMode:CreateToggle({Name = 'Lock 30 FPS', Default = false, Tooltip = 'Cap render to 30 FPS to reduce GPU usage on weak laptops (paradoxically often more stable).'})
+
 end)
 
 run(function()
@@ -38236,6 +38267,233 @@ run(function()
 			local list = {}
 			for piece in string.gmatch(v or "", "[^,%s]+") do list[#list+1] = piece end
 			if #list > 0 then cfg.blocks = list end
+		end,
+	})
+end)
+
+-- ============================================================
+-- N. Atmosphere — preset lighting profiles for visual flavor
+-- ============================================================
+run(function()
+	local Lighting = game:GetService("Lighting")
+	local TweenService = game:GetService("TweenService")
+
+	local Atmosphere
+	local PresetDD
+
+	-- Snapshot original Lighting state so "Default" can restore it precisely
+	-- instead of guessing. Captured ONCE the first time the module enables.
+	local snap = nil
+	local function capture()
+		if snap then return end
+		snap = {
+			Ambient = Lighting.Ambient,
+			OutdoorAmbient = Lighting.OutdoorAmbient,
+			Brightness = Lighting.Brightness,
+			ClockTime = Lighting.ClockTime,
+			FogColor = Lighting.FogColor,
+			FogStart = Lighting.FogStart,
+			FogEnd = Lighting.FogEnd,
+			ColorShift_Top = Lighting.ColorShift_Top,
+			ColorShift_Bottom = Lighting.ColorShift_Bottom,
+			ExposureCompensation = Lighting.ExposureCompensation,
+			GlobalShadows = Lighting.GlobalShadows,
+		}
+		-- Atmosphere instance is optional — capture only if present.
+		local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+		if atmo then
+			snap.Atmosphere = {
+				Density = atmo.Density,
+				Offset = atmo.Offset,
+				Color = atmo.Color,
+				Decay = atmo.Decay,
+				Glare = atmo.Glare,
+				Haze = atmo.Haze,
+			}
+		end
+	end
+
+	-- Each preset is a flat table of Lighting property -> value. Apply via
+	-- TweenService for a smooth visual transition. Atmosphere sub-properties
+	-- come under a nested ".atmosphere" key applied directly (no tween — the
+	-- Atmosphere instance doesn't tween cleanly on all executors).
+	local PRESETS = {
+		Default = function()
+			if not snap then return end
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = snap.Ambient, OutdoorAmbient = snap.OutdoorAmbient,
+				Brightness = snap.Brightness, ClockTime = snap.ClockTime,
+				FogColor = snap.FogColor, FogStart = snap.FogStart, FogEnd = snap.FogEnd,
+				ColorShift_Top = snap.ColorShift_Top, ColorShift_Bottom = snap.ColorShift_Bottom,
+				ExposureCompensation = snap.ExposureCompensation,
+			}):Play()
+			Lighting.GlobalShadows = snap.GlobalShadows
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo and snap.Atmosphere then
+				atmo.Density = snap.Atmosphere.Density
+				atmo.Offset = snap.Atmosphere.Offset
+				atmo.Color = snap.Atmosphere.Color
+				atmo.Decay = snap.Atmosphere.Decay
+				atmo.Glare = snap.Atmosphere.Glare
+				atmo.Haze = snap.Atmosphere.Haze
+			end
+		end,
+		Night = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(20, 20, 35),
+				OutdoorAmbient = Color3.fromRGB(15, 15, 30),
+				Brightness = 0.5, ClockTime = 0,
+				FogColor = Color3.fromRGB(15, 15, 30),
+				FogStart = 50, FogEnd = 350,
+				ColorShift_Top = Color3.fromRGB(10, 10, 40),
+				ColorShift_Bottom = Color3.fromRGB(5, 5, 15),
+				ExposureCompensation = -0.5,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.4; atmo.Color = Color3.fromRGB(20, 20, 45) end
+		end,
+		Vaporwave = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(120, 60, 180),
+				OutdoorAmbient = Color3.fromRGB(255, 100, 220),
+				Brightness = 1.2, ClockTime = 17,
+				FogColor = Color3.fromRGB(255, 100, 220),
+				FogStart = 80, FogEnd = 500,
+				ColorShift_Top = Color3.fromRGB(255, 50, 200),
+				ColorShift_Bottom = Color3.fromRGB(120, 50, 200),
+				ExposureCompensation = 0.3,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.25; atmo.Color = Color3.fromRGB(255, 150, 220); atmo.Glare = 0.3 end
+		end,
+		Neon = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(0, 200, 255),
+				OutdoorAmbient = Color3.fromRGB(0, 255, 200),
+				Brightness = 1.8, ClockTime = 19,
+				FogColor = Color3.fromRGB(0, 255, 220),
+				FogStart = 100, FogEnd = 800,
+				ColorShift_Top = Color3.fromRGB(0, 255, 255),
+				ColorShift_Bottom = Color3.fromRGB(0, 200, 100),
+				ExposureCompensation = 0.6,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.15; atmo.Color = Color3.fromRGB(0, 255, 255); atmo.Glare = 0.5 end
+		end,
+		Cinematic = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(85, 85, 95),
+				OutdoorAmbient = Color3.fromRGB(120, 110, 100),
+				Brightness = 1.1, ClockTime = 16,
+				FogColor = Color3.fromRGB(180, 170, 160),
+				FogStart = 150, FogEnd = 600,
+				ColorShift_Top = Color3.fromRGB(255, 240, 220),
+				ColorShift_Bottom = Color3.fromRGB(100, 90, 80),
+				ExposureCompensation = 0.1,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.35; atmo.Color = Color3.fromRGB(190, 180, 170); atmo.Haze = 1.5 end
+		end,
+		Sunset = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(180, 100, 80),
+				OutdoorAmbient = Color3.fromRGB(255, 150, 100),
+				Brightness = 1.4, ClockTime = 18.5,
+				FogColor = Color3.fromRGB(255, 160, 100),
+				FogStart = 100, FogEnd = 700,
+				ColorShift_Top = Color3.fromRGB(255, 180, 120),
+				ColorShift_Bottom = Color3.fromRGB(255, 100, 60),
+				ExposureCompensation = 0.4,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.4; atmo.Color = Color3.fromRGB(255, 180, 130) end
+		end,
+		Foggy = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(150, 150, 160),
+				OutdoorAmbient = Color3.fromRGB(180, 180, 190),
+				Brightness = 0.8, ClockTime = 12,
+				FogColor = Color3.fromRGB(220, 220, 230),
+				FogStart = 20, FogEnd = 180,
+				ColorShift_Top = Color3.fromRGB(200, 200, 210),
+				ColorShift_Bottom = Color3.fromRGB(150, 150, 160),
+				ExposureCompensation = 0,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.85; atmo.Color = Color3.fromRGB(220, 220, 230); atmo.Haze = 4 end
+		end,
+		Hell = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(120, 30, 20),
+				OutdoorAmbient = Color3.fromRGB(180, 50, 30),
+				Brightness = 1.6, ClockTime = 19,
+				FogColor = Color3.fromRGB(150, 30, 20),
+				FogStart = 30, FogEnd = 400,
+				ColorShift_Top = Color3.fromRGB(255, 80, 40),
+				ColorShift_Bottom = Color3.fromRGB(120, 20, 10),
+				ExposureCompensation = 0.3,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.55; atmo.Color = Color3.fromRGB(150, 40, 20); atmo.Glare = 0.4 end
+		end,
+		Underwater = function()
+			TweenService:Create(Lighting, TweenInfo.new(0.6), {
+				Ambient = Color3.fromRGB(20, 60, 100),
+				OutdoorAmbient = Color3.fromRGB(40, 100, 160),
+				Brightness = 1.2, ClockTime = 13,
+				FogColor = Color3.fromRGB(20, 90, 130),
+				FogStart = 10, FogEnd = 200,
+				ColorShift_Top = Color3.fromRGB(60, 140, 200),
+				ColorShift_Bottom = Color3.fromRGB(20, 60, 100),
+				ExposureCompensation = -0.2,
+			}):Play()
+			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+			if atmo then atmo.Density = 0.7; atmo.Color = Color3.fromRGB(30, 100, 160); atmo.Haze = 3 end
+		end,
+	}
+
+	local function applyCurrent()
+		if not Atmosphere or not Atmosphere.Enabled then return end
+		capture()
+		local preset = PresetDD and PresetDD.Value or "Default"
+		local fn = PRESETS[preset]
+		if fn then pcall(fn) end
+	end
+
+	Atmosphere = vape.Categories.Render:CreateModule({
+		Name = "Atmosphere",
+		Tooltip = "Custom lighting + atmosphere presets for visual flavor. Press the preset dropdown then toggle to apply.",
+		Function = function(state)
+			if state then
+				capture()
+				applyCurrent()
+			else
+				-- restore original snapshot
+				local fn = PRESETS.Default
+				if fn then pcall(fn) end
+			end
+		end,
+	})
+
+	PresetDD = Atmosphere:CreateDropdown({
+		Name = "Preset",
+		List = {"Default", "Night", "Vaporwave", "Neon", "Cinematic", "Sunset", "Foggy", "Hell", "Underwater"},
+		Default = "Cinematic",
+		Tooltip = "Pick a visual flavor. Applies immediately when the module is on.",
+		Function = function() applyCurrent() end,
+	})
+
+	Atmosphere:CreateToggle({
+		Name = "Persist Through Day/Night",
+		Default = true,
+		Tooltip = "Re-apply preset every 10s in case the server cycles day/night or changes Lighting back.",
+		Function = function(state)
+			task.spawn(function()
+				while state and Atmosphere.Enabled do
+					applyCurrent()
+					task.wait(10)
+				end
+			end)
 		end,
 	})
 end)
