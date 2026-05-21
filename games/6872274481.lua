@@ -38384,7 +38384,17 @@ run(function()
 end)
 
 -- ============================================================
--- N. Atmosphere — preset lighting profiles for visual flavor
+-- N. Atmosphere — full Lighting + Atmosphere editor with presets.
+--
+-- Exposes EVERY Lighting property each preset touches as a live UI
+-- control (slider / color picker / toggle), plus a Preset dropdown
+-- that snaps every control to the preset's values so the user can
+-- see what each preset changes. "Custom" preset = use whatever the
+-- sliders currently say.
+--
+-- Sliders are always live: change one and it applies immediately
+-- (the preset dropdown auto-switches to Custom so you keep your
+-- tweaks). Toggle the module off to restore the original snapshot.
 -- ============================================================
 run(function()
 	local Lighting = game:GetService("Lighting")
@@ -38392,9 +38402,13 @@ run(function()
 
 	local Atmosphere
 	local PresetDD
+	-- Controls table — populated below. Each entry has :Set(v) / Value /
+	-- Object so we can programmatically update sliders when a preset is
+	-- picked AND read from them when applying the live state.
+	local C = {}
 
-	-- Snapshot original Lighting state so "Default" can restore it precisely
-	-- instead of guessing. Captured ONCE the first time the module enables.
+	-- Snapshot original Lighting state so "Default" can restore it
+	-- precisely. Captured ONCE on first enable.
 	local snap = nil
 	local function capture()
 		if snap then return end
@@ -38411,7 +38425,6 @@ run(function()
 			ExposureCompensation = Lighting.ExposureCompensation,
 			GlobalShadows = Lighting.GlobalShadows,
 		}
-		-- Atmosphere instance is optional — capture only if present.
 		local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
 		if atmo then
 			snap.Atmosphere = {
@@ -38425,187 +38438,358 @@ run(function()
 		end
 	end
 
-	-- Each preset is a flat table of Lighting property -> value. Apply via
-	-- TweenService for a smooth visual transition. Atmosphere sub-properties
-	-- come under a nested ".atmosphere" key applied directly (no tween — the
-	-- Atmosphere instance doesn't tween cleanly on all executors).
+	-- Presets stored as TABLES (not functions). Each maps property -> value.
+	-- "Custom" reads from the user's slider state instead. "Default" is
+	-- populated lazily from the captured snapshot on first enable.
 	local PRESETS = {
-		Default = function()
-			if not snap then return end
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = snap.Ambient, OutdoorAmbient = snap.OutdoorAmbient,
-				Brightness = snap.Brightness, ClockTime = snap.ClockTime,
-				FogColor = snap.FogColor, FogStart = snap.FogStart, FogEnd = snap.FogEnd,
-				ColorShift_Top = snap.ColorShift_Top, ColorShift_Bottom = snap.ColorShift_Bottom,
-				ExposureCompensation = snap.ExposureCompensation,
-			}):Play()
-			Lighting.GlobalShadows = snap.GlobalShadows
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo and snap.Atmosphere then
-				atmo.Density = snap.Atmosphere.Density
-				atmo.Offset = snap.Atmosphere.Offset
-				atmo.Color = snap.Atmosphere.Color
-				atmo.Decay = snap.Atmosphere.Decay
-				atmo.Glare = snap.Atmosphere.Glare
-				atmo.Haze = snap.Atmosphere.Haze
-			end
-		end,
-		Night = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(20, 20, 35),
-				OutdoorAmbient = Color3.fromRGB(15, 15, 30),
-				Brightness = 0.5, ClockTime = 0,
-				FogColor = Color3.fromRGB(15, 15, 30),
-				FogStart = 50, FogEnd = 350,
-				ColorShift_Top = Color3.fromRGB(10, 10, 40),
-				ColorShift_Bottom = Color3.fromRGB(5, 5, 15),
-				ExposureCompensation = -0.5,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.4; atmo.Color = Color3.fromRGB(20, 20, 45) end
-		end,
-		Vaporwave = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(120, 60, 180),
-				OutdoorAmbient = Color3.fromRGB(255, 100, 220),
-				Brightness = 1.2, ClockTime = 17,
-				FogColor = Color3.fromRGB(255, 100, 220),
-				FogStart = 80, FogEnd = 500,
-				ColorShift_Top = Color3.fromRGB(255, 50, 200),
-				ColorShift_Bottom = Color3.fromRGB(120, 50, 200),
-				ExposureCompensation = 0.3,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.25; atmo.Color = Color3.fromRGB(255, 150, 220); atmo.Glare = 0.3 end
-		end,
-		Neon = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(0, 200, 255),
-				OutdoorAmbient = Color3.fromRGB(0, 255, 200),
-				Brightness = 1.8, ClockTime = 19,
-				FogColor = Color3.fromRGB(0, 255, 220),
-				FogStart = 100, FogEnd = 800,
-				ColorShift_Top = Color3.fromRGB(0, 255, 255),
-				ColorShift_Bottom = Color3.fromRGB(0, 200, 100),
-				ExposureCompensation = 0.6,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.15; atmo.Color = Color3.fromRGB(0, 255, 255); atmo.Glare = 0.5 end
-		end,
-		Cinematic = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(85, 85, 95),
-				OutdoorAmbient = Color3.fromRGB(120, 110, 100),
-				Brightness = 1.1, ClockTime = 16,
-				FogColor = Color3.fromRGB(180, 170, 160),
-				FogStart = 150, FogEnd = 600,
-				ColorShift_Top = Color3.fromRGB(255, 240, 220),
-				ColorShift_Bottom = Color3.fromRGB(100, 90, 80),
-				ExposureCompensation = 0.1,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.35; atmo.Color = Color3.fromRGB(190, 180, 170); atmo.Haze = 1.5 end
-		end,
-		Sunset = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(180, 100, 80),
-				OutdoorAmbient = Color3.fromRGB(255, 150, 100),
-				Brightness = 1.4, ClockTime = 18.5,
-				FogColor = Color3.fromRGB(255, 160, 100),
-				FogStart = 100, FogEnd = 700,
-				ColorShift_Top = Color3.fromRGB(255, 180, 120),
-				ColorShift_Bottom = Color3.fromRGB(255, 100, 60),
-				ExposureCompensation = 0.4,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.4; atmo.Color = Color3.fromRGB(255, 180, 130) end
-		end,
-		Foggy = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(150, 150, 160),
-				OutdoorAmbient = Color3.fromRGB(180, 180, 190),
-				Brightness = 0.8, ClockTime = 12,
-				FogColor = Color3.fromRGB(220, 220, 230),
-				FogStart = 20, FogEnd = 180,
-				ColorShift_Top = Color3.fromRGB(200, 200, 210),
-				ColorShift_Bottom = Color3.fromRGB(150, 150, 160),
-				ExposureCompensation = 0,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.85; atmo.Color = Color3.fromRGB(220, 220, 230); atmo.Haze = 4 end
-		end,
-		Hell = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(120, 30, 20),
-				OutdoorAmbient = Color3.fromRGB(180, 50, 30),
-				Brightness = 1.6, ClockTime = 19,
-				FogColor = Color3.fromRGB(150, 30, 20),
-				FogStart = 30, FogEnd = 400,
-				ColorShift_Top = Color3.fromRGB(255, 80, 40),
-				ColorShift_Bottom = Color3.fromRGB(120, 20, 10),
-				ExposureCompensation = 0.3,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.55; atmo.Color = Color3.fromRGB(150, 40, 20); atmo.Glare = 0.4 end
-		end,
-		Underwater = function()
-			TweenService:Create(Lighting, TweenInfo.new(0.6), {
-				Ambient = Color3.fromRGB(20, 60, 100),
-				OutdoorAmbient = Color3.fromRGB(40, 100, 160),
-				Brightness = 1.2, ClockTime = 13,
-				FogColor = Color3.fromRGB(20, 90, 130),
-				FogStart = 10, FogEnd = 200,
-				ColorShift_Top = Color3.fromRGB(60, 140, 200),
-				ColorShift_Bottom = Color3.fromRGB(20, 60, 100),
-				ExposureCompensation = -0.2,
-			}):Play()
-			local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
-			if atmo then atmo.Density = 0.7; atmo.Color = Color3.fromRGB(30, 100, 160); atmo.Haze = 3 end
-		end,
+		Default     = nil, -- populated on first capture()
+		Night       = { ambient={20,20,35}, outdoorAmbient={15,15,30}, brightness=0.5, clockTime=0,
+		                fogColor={15,15,30}, fogStart=50, fogEnd=350,
+		                shiftTop={10,10,40}, shiftBottom={5,5,15}, exposure=-0.5,
+		                atmoDensity=0.4, atmoColor={20,20,45}, atmoGlare=0, atmoHaze=0, atmoOffset=0, atmoDecay={106,112,125}, },
+		Vaporwave   = { ambient={120,60,180}, outdoorAmbient={255,100,220}, brightness=1.2, clockTime=17,
+		                fogColor={255,100,220}, fogStart=80, fogEnd=500,
+		                shiftTop={255,50,200}, shiftBottom={120,50,200}, exposure=0.3,
+		                atmoDensity=0.25, atmoColor={255,150,220}, atmoGlare=0.3, atmoHaze=0, atmoOffset=0, atmoDecay={106,112,125}, },
+		Neon        = { ambient={0,200,255}, outdoorAmbient={0,255,200}, brightness=1.8, clockTime=19,
+		                fogColor={0,255,220}, fogStart=100, fogEnd=800,
+		                shiftTop={0,255,255}, shiftBottom={0,200,100}, exposure=0.6,
+		                atmoDensity=0.15, atmoColor={0,255,255}, atmoGlare=0.5, atmoHaze=0, atmoOffset=0, atmoDecay={106,112,125}, },
+		Cinematic   = { ambient={85,85,95}, outdoorAmbient={120,110,100}, brightness=1.1, clockTime=16,
+		                fogColor={180,170,160}, fogStart=150, fogEnd=600,
+		                shiftTop={255,240,220}, shiftBottom={100,90,80}, exposure=0.1,
+		                atmoDensity=0.35, atmoColor={190,180,170}, atmoGlare=0, atmoHaze=1.5, atmoOffset=0, atmoDecay={106,112,125}, },
+		Sunset      = { ambient={180,100,80}, outdoorAmbient={255,150,100}, brightness=1.4, clockTime=18.5,
+		                fogColor={255,160,100}, fogStart=100, fogEnd=700,
+		                shiftTop={255,180,120}, shiftBottom={255,100,60}, exposure=0.4,
+		                atmoDensity=0.4, atmoColor={255,180,130}, atmoGlare=0, atmoHaze=0, atmoOffset=0, atmoDecay={106,112,125}, },
+		Foggy       = { ambient={150,150,160}, outdoorAmbient={180,180,190}, brightness=0.8, clockTime=12,
+		                fogColor={220,220,230}, fogStart=20, fogEnd=180,
+		                shiftTop={200,200,210}, shiftBottom={150,150,160}, exposure=0,
+		                atmoDensity=0.85, atmoColor={220,220,230}, atmoGlare=0, atmoHaze=4, atmoOffset=0, atmoDecay={106,112,125}, },
+		Hell        = { ambient={120,30,20}, outdoorAmbient={180,50,30}, brightness=1.6, clockTime=19,
+		                fogColor={150,30,20}, fogStart=30, fogEnd=400,
+		                shiftTop={255,80,40}, shiftBottom={120,20,10}, exposure=0.3,
+		                atmoDensity=0.55, atmoColor={150,40,20}, atmoGlare=0.4, atmoHaze=0, atmoOffset=0, atmoDecay={106,112,125}, },
+		Underwater  = { ambient={20,60,100}, outdoorAmbient={40,100,160}, brightness=1.2, clockTime=13,
+		                fogColor={20,90,130}, fogStart=10, fogEnd=200,
+		                shiftTop={60,140,200}, shiftBottom={20,60,100}, exposure=-0.2,
+		                atmoDensity=0.7, atmoColor={30,100,160}, atmoGlare=0, atmoHaze=3, atmoOffset=0, atmoDecay={106,112,125}, },
+		Blood       = { ambient={150,0,0}, outdoorAmbient={200,30,30}, brightness=1.3, clockTime=19,
+		                fogColor={120,0,0}, fogStart=20, fogEnd=350,
+		                shiftTop={255,40,40}, shiftBottom={100,0,0}, exposure=0.2,
+		                atmoDensity=0.5, atmoColor={140,20,20}, atmoGlare=0.2, atmoHaze=0.5, atmoOffset=0, atmoDecay={106,112,125}, },
+		Pastel      = { ambient={230,210,255}, outdoorAmbient={255,220,235}, brightness=1.5, clockTime=14,
+		                fogColor={255,220,240}, fogStart=200, fogEnd=900,
+		                shiftTop={255,230,250}, shiftBottom={220,200,240}, exposure=0.5,
+		                atmoDensity=0.1, atmoColor={255,220,235}, atmoGlare=0.2, atmoHaze=0.3, atmoOffset=0, atmoDecay={106,112,125}, },
+		Cyberpunk   = { ambient={40,0,80}, outdoorAmbient={120,0,180}, brightness=1.7, clockTime=20,
+		                fogColor={200,0,150}, fogStart=60, fogEnd=600,
+		                shiftTop={0,255,200}, shiftBottom={200,0,150}, exposure=0.6,
+		                atmoDensity=0.2, atmoColor={120,0,180}, atmoGlare=0.6, atmoHaze=0, atmoOffset=0, atmoDecay={106,112,125}, },
+		Matrix      = { ambient={0,80,0}, outdoorAmbient={0,150,30}, brightness=0.9, clockTime=2,
+		                fogColor={0,80,0}, fogStart=30, fogEnd=400,
+		                shiftTop={0,255,80}, shiftBottom={0,80,0}, exposure=0,
+		                atmoDensity=0.45, atmoColor={0,100,30}, atmoGlare=0.1, atmoHaze=1, atmoOffset=0, atmoDecay={106,112,125}, },
 	}
 
-	local function applyCurrent()
+	-- Suppress slider Function callbacks during a preset snap so we don't
+	-- flip the preset dropdown to "Custom" while we're programmatically
+	-- updating slider values.
+	local suppressCallback = false
+
+	-- Read the current control state into a flat config table.
+	local function readState()
+		local function rgb(cs)
+			if not cs or not cs.Hue then return Color3.new(1,1,1) end
+			return Color3.fromHSV(cs.Hue, cs.Sat, cs.Value)
+		end
+		return {
+			ambientC          = rgb(C.ambient),
+			outdoorAmbientC   = rgb(C.outdoorAmbient),
+			brightness        = (C.brightness and C.brightness.Value) or 1,
+			clockTime         = (C.clockTime and C.clockTime.Value) or 14,
+			fogColorC         = rgb(C.fogColor),
+			fogStart          = (C.fogStart and C.fogStart.Value) or 0,
+			fogEnd            = (C.fogEnd and C.fogEnd.Value) or 1000,
+			shiftTopC         = rgb(C.shiftTop),
+			shiftBottomC      = rgb(C.shiftBottom),
+			exposure          = (C.exposure and C.exposure.Value) or 0,
+			globalShadows     = C.globalShadows and C.globalShadows.Enabled,
+			atmoDensity       = (C.atmoDensity and C.atmoDensity.Value) or 0.3,
+			atmoColorC        = rgb(C.atmoColor),
+			atmoGlare         = (C.atmoGlare and C.atmoGlare.Value) or 0,
+			atmoHaze          = (C.atmoHaze and C.atmoHaze.Value) or 0,
+			atmoOffset        = (C.atmoOffset and C.atmoOffset.Value) or 0,
+		}
+	end
+
+	-- Apply a config table to Lighting (smooth tween for numeric props).
+	local function applyState()
 		if not Atmosphere or not Atmosphere.Enabled then return end
+		local s = readState()
+		local tweenProps = {
+			Ambient = s.ambientC, OutdoorAmbient = s.outdoorAmbientC,
+			Brightness = s.brightness, ClockTime = s.clockTime,
+			FogColor = s.fogColorC, FogStart = s.fogStart, FogEnd = s.fogEnd,
+			ColorShift_Top = s.shiftTopC, ColorShift_Bottom = s.shiftBottomC,
+			ExposureCompensation = s.exposure,
+		}
+		pcall(function()
+			TweenService:Create(Lighting, TweenInfo.new(0.35), tweenProps):Play()
+		end)
+		Lighting.GlobalShadows = (s.globalShadows == nil) and true or s.globalShadows
+		local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+		if atmo then
+			pcall(function()
+				atmo.Density = s.atmoDensity
+				atmo.Color = s.atmoColorC
+				atmo.Glare = s.atmoGlare
+				atmo.Haze = s.atmoHaze
+				atmo.Offset = s.atmoOffset
+			end)
+		end
+	end
+
+	-- Snap all controls to a preset's values, then apply.
+	local function snapControlsToPreset(presetName)
+		if presetName == "Custom" then return end -- Custom keeps existing slider state
 		capture()
-		local preset = PresetDD and PresetDD.Value or "Default"
-		local fn = PRESETS[preset]
-		if fn then pcall(fn) end
+		local p
+		if presetName == "Default" then
+			if not snap then return end
+			-- Build a preset-shaped table from the captured snapshot
+			local function c(col) return {math.floor(col.R*255), math.floor(col.G*255), math.floor(col.B*255)} end
+			p = {
+				ambient = c(snap.Ambient), outdoorAmbient = c(snap.OutdoorAmbient),
+				brightness = snap.Brightness, clockTime = snap.ClockTime,
+				fogColor = c(snap.FogColor), fogStart = snap.FogStart, fogEnd = snap.FogEnd,
+				shiftTop = c(snap.ColorShift_Top), shiftBottom = c(snap.ColorShift_Bottom), exposure = snap.ExposureCompensation,
+				atmoDensity = snap.Atmosphere and snap.Atmosphere.Density or 0.3,
+				atmoColor = snap.Atmosphere and c(snap.Atmosphere.Color) or {106,112,125},
+				atmoGlare = snap.Atmosphere and snap.Atmosphere.Glare or 0,
+				atmoHaze = snap.Atmosphere and snap.Atmosphere.Haze or 0,
+				atmoOffset = snap.Atmosphere and snap.Atmosphere.Offset or 0,
+			}
+		else
+			p = PRESETS[presetName]
+		end
+		if not p then return end
+		suppressCallback = true
+		local function setCS(ctrl, rgb)
+			if not ctrl or not rgb then return end
+			local h, s, v = Color3.fromRGB(rgb[1], rgb[2], rgb[3]):ToHSV()
+			pcall(function() ctrl:SetValue(h, s, v, ctrl.Opacity or 0) end)
+		end
+		local function setSlider(ctrl, v)
+			if ctrl and v ~= nil then pcall(function() ctrl:SetValue(v) end) end
+		end
+		setCS(C.ambient, p.ambient)
+		setCS(C.outdoorAmbient, p.outdoorAmbient)
+		setSlider(C.brightness, p.brightness)
+		setSlider(C.clockTime, p.clockTime)
+		setCS(C.fogColor, p.fogColor)
+		setSlider(C.fogStart, p.fogStart)
+		setSlider(C.fogEnd, p.fogEnd)
+		setCS(C.shiftTop, p.shiftTop)
+		setCS(C.shiftBottom, p.shiftBottom)
+		setSlider(C.exposure, p.exposure)
+		setSlider(C.atmoDensity, p.atmoDensity)
+		setCS(C.atmoColor, p.atmoColor)
+		setSlider(C.atmoGlare, p.atmoGlare)
+		setSlider(C.atmoHaze, p.atmoHaze)
+		setSlider(C.atmoOffset, p.atmoOffset)
+		suppressCallback = false
+		applyState()
+	end
+
+	-- Wrapper for slider callbacks — when the user tweaks any slider, the
+	-- preset auto-switches to "Custom" and the current state re-applies.
+	local function onUserEdit()
+		if suppressCallback then return end
+		if PresetDD and PresetDD.Value ~= "Custom" and PresetDD.SetValue then
+			pcall(function() PresetDD:SetValue("Custom") end)
+		end
+		applyState()
 	end
 
 	Atmosphere = vape.Categories.Render:CreateModule({
 		Name = "Atmosphere",
-		Tooltip = "Custom lighting + atmosphere presets for visual flavor. Press the preset dropdown then toggle to apply.",
+		Tooltip = "Full Lighting + Atmosphere editor. Pick a preset to snap every slider to that preset's values, then tweak any slider to switch to Custom mode. Toggle off to restore the original Lighting snapshot.",
 		Function = function(state)
 			if state then
 				capture()
-				applyCurrent()
+				applyState()
 			else
-				-- restore original snapshot
-				local fn = PRESETS.Default
-				if fn then pcall(fn) end
+				if not snap then return end
+				pcall(function()
+					TweenService:Create(Lighting, TweenInfo.new(0.6), {
+						Ambient = snap.Ambient, OutdoorAmbient = snap.OutdoorAmbient,
+						Brightness = snap.Brightness, ClockTime = snap.ClockTime,
+						FogColor = snap.FogColor, FogStart = snap.FogStart, FogEnd = snap.FogEnd,
+						ColorShift_Top = snap.ColorShift_Top, ColorShift_Bottom = snap.ColorShift_Bottom,
+						ExposureCompensation = snap.ExposureCompensation,
+					}):Play()
+				end)
+				Lighting.GlobalShadows = snap.GlobalShadows
+				local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
+				if atmo and snap.Atmosphere then
+					pcall(function()
+						atmo.Density = snap.Atmosphere.Density
+						atmo.Offset = snap.Atmosphere.Offset
+						atmo.Color = snap.Atmosphere.Color
+						atmo.Decay = snap.Atmosphere.Decay
+						atmo.Glare = snap.Atmosphere.Glare
+						atmo.Haze = snap.Atmosphere.Haze
+					end)
+				end
 			end
 		end,
 	})
 
 	PresetDD = Atmosphere:CreateDropdown({
 		Name = "Preset",
-		List = {"Default", "Night", "Vaporwave", "Neon", "Cinematic", "Sunset", "Foggy", "Hell", "Underwater"},
+		List = {"Default", "Custom", "Night", "Vaporwave", "Neon", "Cinematic", "Sunset", "Foggy", "Hell", "Underwater", "Blood", "Pastel", "Cyberpunk", "Matrix"},
 		Default = "Cinematic",
-		Tooltip = "Pick a visual flavor. Applies immediately when the module is on.",
-		Function = function() applyCurrent() end,
+		Tooltip = "Preset picker. Default = restore original Lighting. Custom = use whatever the sliders currently say. Other = snap every slider to that preset's values then apply.",
+		Function = function(val) snapControlsToPreset(val) end,
 	})
 
+	-- --------- Lighting properties (top-level) ---------
+	C.ambient = Atmosphere:CreateColorSlider({
+		Name = "Ambient",
+		Default = Color3.fromRGB(85,85,95),
+		Tooltip = "Lighting.Ambient — ambient color for indoor / shadowed areas.",
+		Function = function() onUserEdit() end,
+	})
+	C.outdoorAmbient = Atmosphere:CreateColorSlider({
+		Name = "Outdoor Ambient",
+		Default = Color3.fromRGB(120,110,100),
+		Tooltip = "Lighting.OutdoorAmbient — ambient color for direct sky-lit areas.",
+		Function = function() onUserEdit() end,
+	})
+	C.brightness = Atmosphere:CreateSlider({
+		Name = "Brightness",
+		Min = 0, Max = 3, Default = 1.1, Decimal = 2,
+		Tooltip = "Lighting.Brightness — overall sun intensity multiplier.",
+		Function = function() onUserEdit() end,
+	})
+	C.clockTime = Atmosphere:CreateSlider({
+		Name = "Clock Time",
+		Min = 0, Max = 24, Default = 16, Decimal = 1,
+		Tooltip = "Lighting.ClockTime — sun position. 0/24 = midnight, 6 = sunrise, 12 = noon, 18 = sunset.",
+		Function = function() onUserEdit() end,
+	})
+	C.fogColor = Atmosphere:CreateColorSlider({
+		Name = "Fog Color",
+		Default = Color3.fromRGB(180,170,160),
+		Tooltip = "Lighting.FogColor — color of the distance fog.",
+		Function = function() onUserEdit() end,
+	})
+	C.fogStart = Atmosphere:CreateSlider({
+		Name = "Fog Start",
+		Min = 0, Max = 1000, Default = 150, Suffix = " studs",
+		Tooltip = "Lighting.FogStart — distance at which fog begins to appear.",
+		Function = function() onUserEdit() end,
+	})
+	C.fogEnd = Atmosphere:CreateSlider({
+		Name = "Fog End",
+		Min = 100, Max = 2000, Default = 600, Suffix = " studs",
+		Tooltip = "Lighting.FogEnd — distance at which fog becomes fully opaque.",
+		Function = function() onUserEdit() end,
+	})
+	C.shiftTop = Atmosphere:CreateColorSlider({
+		Name = "Shift Top",
+		Default = Color3.fromRGB(255,240,220),
+		Tooltip = "Lighting.ColorShift_Top — color tint for surfaces facing up (sky-lit).",
+		Function = function() onUserEdit() end,
+	})
+	C.shiftBottom = Atmosphere:CreateColorSlider({
+		Name = "Shift Bottom",
+		Default = Color3.fromRGB(100,90,80),
+		Tooltip = "Lighting.ColorShift_Bottom — color tint for surfaces facing down (shadowed).",
+		Function = function() onUserEdit() end,
+	})
+	C.exposure = Atmosphere:CreateSlider({
+		Name = "Exposure",
+		Min = -3, Max = 3, Default = 0.1, Decimal = 2,
+		Tooltip = "Lighting.ExposureCompensation — global exposure stop. Negative = darker, positive = brighter.",
+		Function = function() onUserEdit() end,
+	})
+	C.globalShadows = Atmosphere:CreateToggle({
+		Name = "Global Shadows",
+		Default = true,
+		Tooltip = "Lighting.GlobalShadows — sun-cast world shadows. Off saves a few FPS.",
+		Function = function() onUserEdit() end,
+	})
+
+	-- --------- Atmosphere instance properties (under Lighting) ---------
+	C.atmoDensity = Atmosphere:CreateSlider({
+		Name = "Atmosphere Density",
+		Min = 0, Max = 1, Default = 0.35, Decimal = 3,
+		Tooltip = "Atmosphere.Density — overall thickness of the volumetric haze.",
+		Function = function() onUserEdit() end,
+	})
+	C.atmoColor = Atmosphere:CreateColorSlider({
+		Name = "Atmosphere Color",
+		Default = Color3.fromRGB(190,180,170),
+		Tooltip = "Atmosphere.Color — base color of the volumetric haze.",
+		Function = function() onUserEdit() end,
+	})
+	C.atmoGlare = Atmosphere:CreateSlider({
+		Name = "Atmosphere Glare",
+		Min = 0, Max = 1, Default = 0, Decimal = 2,
+		Tooltip = "Atmosphere.Glare — sun glare intensity through the haze.",
+		Function = function() onUserEdit() end,
+	})
+	C.atmoHaze = Atmosphere:CreateSlider({
+		Name = "Atmosphere Haze",
+		Min = 0, Max = 4, Default = 0, Decimal = 2,
+		Tooltip = "Atmosphere.Haze — extra haze on top of density.",
+		Function = function() onUserEdit() end,
+	})
+	C.atmoOffset = Atmosphere:CreateSlider({
+		Name = "Atmosphere Offset",
+		Min = 0, Max = 1, Default = 0, Decimal = 2,
+		Tooltip = "Atmosphere.Offset — horizon offset (0 = horizon stays at world bottom, 1 = floats up).",
+		Function = function() onUserEdit() end,
+	})
+
+	-- --------- Behavior toggles ---------
 	Atmosphere:CreateToggle({
 		Name = "Persist Through Day/Night",
 		Default = true,
-		Tooltip = "Re-apply preset every 10s in case the server cycles day/night or changes Lighting back.",
+		Tooltip = "Re-apply current settings every 10s so server-side day/night cycles or external Lighting writes don't overwrite.",
 		Function = function(state)
 			task.spawn(function()
 				while state and Atmosphere.Enabled do
-					applyCurrent()
+					applyState()
 					task.wait(10)
 				end
 			end)
+		end,
+	})
+
+	Atmosphere:CreateToggle({
+		Name = "Show Current Preset (debug)",
+		Default = false,
+		Tooltip = "Pop a notification every time the preset changes so you can see what the dropdown actually picked.",
+		Function = function(state)
+			if state then
+				task.spawn(function()
+					local last = nil
+					while state and Atmosphere.Enabled do
+						local cur = PresetDD and PresetDD.Value
+						if cur and cur ~= last then
+							if shared.vape and shared.vape.CreateNotification then
+								shared.vape:CreateNotification("Atmosphere", "Active preset: " .. tostring(cur), 3)
+							end
+							last = cur
+						end
+						task.wait(1)
+					end
+				end)
+			end
 		end,
 	})
 end)
