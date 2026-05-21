@@ -170,8 +170,27 @@ do
 	local SUPABASE_ANON_GATE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impma2h1enBxeXB0dGFkZGdia2luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMjUzMzksImV4cCI6MjA5NDgwMTMzOX0.O_A2a7uVN8MVajlewMsb0dXqAz4sir4HiYvKTb0cp1o"
 	local CACHE_GATE = "neptune_account.json"
 	local DISCORD_GATE = "https://discord.gg/axM8rzg5"
+	-- OWNER accounts — these bypass the key gate entirely. The owner shouldn't
+	-- have to redeem to use their own product. Matched against username
+	-- (case-insensitive). Add more here if you have alt accounts.
+	local OWNER_USERNAMES = { "bl3tant", "UdAxol", "theoriginalaxol" }
 	local lp = playersService.LocalPlayer
 	local httpG = httpService
+	-- Owner bypass: short-circuit before any network call so even if Supabase
+	-- is down the owner still loads.
+	do
+		local nameLower = tostring(lp.Name):lower()
+		for _, ownerName in ipairs(OWNER_USERNAMES) do
+			if nameLower == ownerName:lower() then
+				getgenv()._NEPTUNE_LIFETIME = true
+				pcall(writefile, CACHE_GATE, httpService:JSONEncode({
+					active = true, tier = "premium", is_lifetime = true, owner = true,
+				}))
+				warn("[NEPTUNE] owner account detected (" .. lp.Name .. ") — key gate bypassed, granted Premium")
+				return  -- skip the rest of the gate block entirely
+			end
+		end
+	end
 	local reqG = (syn and syn.request) or (http and http.request) or http_request or request
 		or function(t) return { Body = game:HttpGet(t.Url, true), StatusCode = 200 } end
 
@@ -313,6 +332,28 @@ do
 				status.TextColor3 = Color3.fromRGB(80, 220, 120)
 				task.wait(0.7); done = true
 			else
+				-- "Key already used" rejection — could mean THIS user already
+				-- redeemed it (deleted local cache, trying again) OR another
+				-- user consumed it. Re-check user_premium: if THIS user still
+				-- has active premium from a previous redemption, grant access.
+				local msg = tostring(info)
+				if msg:lower():find("already") or msg:lower():find("used") or msg:lower():find("consumed") then
+					status.Text = "key already redeemed — checking your premium status..."
+					status.TextColor3 = Color3.fromRGB(180, 180, 180)
+					local liveActive, row = checkStatus()
+					if liveActive then
+						pcall(writefile, CACHE_GATE, httpG:JSONEncode({
+							active = true,
+							tier = row and row.tier or "premium",
+							expires_unix = row and row.expires_unix or nil,
+							is_lifetime = row and row.is_lifetime or false,
+						}))
+						status.Text = "verified — premium restored from your account"
+						status.TextColor3 = Color3.fromRGB(80, 220, 120)
+						task.wait(0.7); done = true
+						return
+					end
+				end
 				status.Text = "rejected: " .. tostring(info)
 				status.TextColor3 = Color3.fromRGB(255, 110, 110)
 			end
