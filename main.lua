@@ -235,23 +235,30 @@ do
 	end
 
 	local function checkStatus()
-		-- Pass current HWID so server can enforce device-lock and return
-		-- "device_locked" if this isn't the HWID the key was originally
-		-- bound to. Older RPC signatures that don't accept p_hwid will
-		-- ignore the extra param.
 		local r = gateCall("/rest/v1/rpc/get_user_premium",
 			{ p_user_id = lp.UserId, p_hwid = currentHWID }, "POST")
+		if type(r) == "table" and r[1] then return r[1].active == true, r[1] end
+		-- Fallback for the pre-HWID-migration RPC signature
+		r = gateCall("/rest/v1/rpc/get_user_premium", { p_user_id = lp.UserId }, "POST")
 		if type(r) == "table" and r[1] then return r[1].active == true, r[1] end
 		return false, nil
 	end
 
 	local function tryRedeem(key)
 		if not key or #key < 8 then return false, "key too short" end
+		local cleaned = key:gsub("%s+", "")
 		local r = gateCall("/rest/v1/rpc/redeem_key", {
-			p_user_id = lp.UserId, p_username = lp.Name, p_key = key:gsub("%s+", ""),
-			p_hwid = currentHWID,
+			p_user_id = lp.UserId, p_username = lp.Name, p_key = cleaned, p_hwid = currentHWID,
 		}, "POST")
-		if type(r) ~= "table" or not r[1] then return false, "no response" end
+		if (type(r) ~= "table" or not r[1]) then
+			r = gateCall("/rest/v1/rpc/redeem_key", {
+				p_user_id = lp.UserId, p_username = lp.Name, p_key = cleaned,
+			}, "POST")
+		end
+		if type(r) == "table" and type(r.message) == "string" then
+			return false, "supabase: " .. r.message
+		end
+		if type(r) ~= "table" or not r[1] then return false, "no response (supabase unreachable / RPC missing)" end
 		if not r[1].success then return false, r[1].message or "invalid" end
 		return true, r[1]
 	end
