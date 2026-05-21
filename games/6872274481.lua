@@ -38490,7 +38490,29 @@ run(function()
 		Matrix      = { ambient={0,80,0}, outdoorAmbient={0,150,30}, brightness=0.9, clockTime=2,
 		                fogColor={0,80,0}, fogStart=30, fogEnd=400,
 		                shiftTop={0,255,80}, shiftBottom={0,80,0}, exposure=0,
-		                atmoDensity=0.45, atmoColor={0,100,30}, atmoGlare=0.1, atmoHaze=1, atmoOffset=0, atmoDecay={106,112,125}, },
+		                atmoDensity=0.45, atmoColor={0,100,30}, atmoGlare=0.1, atmoHaze=1, atmoOffset=0, atmoDecay={106,112,125},
+		                saturation=-0.3, contrast=0.5, tintColor={120,255,150}, bloomIntensity=0.8, bloomSize=24, bloomThreshold=0.85, },
+		Dreamy      = { ambient={180,180,220}, outdoorAmbient={220,200,240}, brightness=1.3, clockTime=15,
+		                fogColor={230,210,250}, fogStart=120, fogEnd=700,
+		                shiftTop={255,240,255}, shiftBottom={200,190,230}, exposure=0.4,
+		                atmoDensity=0.2, atmoColor={230,210,250}, atmoGlare=0.2, atmoHaze=0.5, atmoOffset=0, atmoDecay={106,112,125},
+		                bloomIntensity=1.5, bloomSize=32, bloomThreshold=0.6, blurSize=2, saturation=0.2, contrast=-0.1, tintColor={250,235,255},
+		                sunRays=0.4, sunRaysSpread=1, },
+		Apocalypse  = { ambient={130,90,60}, outdoorAmbient={180,140,90}, brightness=0.9, clockTime=17.5,
+		                fogColor={150,110,80}, fogStart=15, fogEnd=250,
+		                shiftTop={220,170,120}, shiftBottom={80,60,40}, exposure=-0.1,
+		                atmoDensity=0.8, atmoColor={170,130,90}, atmoGlare=0.1, atmoHaze=3.5, atmoOffset=0, atmoDecay={106,112,125},
+		                saturation=-0.4, contrast=0.3, tintColor={240,200,150}, bloomIntensity=0.6, bloomSize=18, bloomThreshold=1.2, },
+		Movie       = { ambient={70,75,90}, outdoorAmbient={110,115,130}, brightness=1.0, clockTime=15,
+		                fogColor={140,150,170}, fogStart=80, fogEnd=500,
+		                shiftTop={240,220,200}, shiftBottom={70,75,90}, exposure=0.15,
+		                atmoDensity=0.3, atmoColor={170,170,180}, atmoGlare=0, atmoHaze=1.2, atmoOffset=0, atmoDecay={106,112,125},
+		                saturation=-0.15, contrast=0.3, tintColor={230,225,220}, bloomIntensity=0.5, bloomSize=20, bloomThreshold=1, },
+		Frostbite   = { ambient={170,200,230}, outdoorAmbient={210,225,245}, brightness=1.1, clockTime=10,
+		                fogColor={210,225,250}, fogStart=30, fogEnd=320,
+		                shiftTop={220,235,255}, shiftBottom={160,180,210}, exposure=0.2,
+		                atmoDensity=0.6, atmoColor={210,225,245}, atmoGlare=0.3, atmoHaze=2, atmoOffset=0, atmoDecay={106,112,125},
+		                saturation=-0.2, contrast=0.1, tintColor={220,235,255}, bloomIntensity=0.7, bloomSize=20, bloomThreshold=0.9, },
 	}
 
 	-- Suppress slider Function callbacks during a preset snap so we don't
@@ -38504,24 +38526,60 @@ run(function()
 			if not cs or not cs.Hue then return Color3.new(1,1,1) end
 			return Color3.fromHSV(cs.Hue, cs.Sat, cs.Value)
 		end
+		local function num(ctrl, default) return (ctrl and ctrl.Value) or default end
+		local function tog(ctrl) return ctrl and ctrl.Enabled end
 		return {
 			ambientC          = rgb(C.ambient),
 			outdoorAmbientC   = rgb(C.outdoorAmbient),
-			brightness        = (C.brightness and C.brightness.Value) or 1,
-			clockTime         = (C.clockTime and C.clockTime.Value) or 14,
+			brightness        = num(C.brightness, 1),
+			clockTime         = num(C.clockTime, 14),
 			fogColorC         = rgb(C.fogColor),
-			fogStart          = (C.fogStart and C.fogStart.Value) or 0,
-			fogEnd            = (C.fogEnd and C.fogEnd.Value) or 1000,
+			fogStart          = num(C.fogStart, 0),
+			fogEnd            = num(C.fogEnd, 1000),
 			shiftTopC         = rgb(C.shiftTop),
 			shiftBottomC      = rgb(C.shiftBottom),
-			exposure          = (C.exposure and C.exposure.Value) or 0,
-			globalShadows     = C.globalShadows and C.globalShadows.Enabled,
-			atmoDensity       = (C.atmoDensity and C.atmoDensity.Value) or 0.3,
+			exposure          = num(C.exposure, 0),
+			globalShadows     = tog(C.globalShadows),
+			-- Newer Lighting numeric props
+			geoLatitude       = num(C.geoLatitude, 41.733),
+			shadowSoft        = num(C.shadowSoft, 0.2),
+			envDiffuse        = num(C.envDiffuse, 0),
+			envSpecular       = num(C.envSpecular, 0),
+			-- Atmosphere instance
+			atmoDensity       = num(C.atmoDensity, 0.3),
 			atmoColorC        = rgb(C.atmoColor),
-			atmoGlare         = (C.atmoGlare and C.atmoGlare.Value) or 0,
-			atmoHaze          = (C.atmoHaze and C.atmoHaze.Value) or 0,
-			atmoOffset        = (C.atmoOffset and C.atmoOffset.Value) or 0,
+			atmoGlare         = num(C.atmoGlare, 0),
+			atmoHaze          = num(C.atmoHaze, 0),
+			atmoOffset        = num(C.atmoOffset, 0),
+			-- Post-effects
+			bloomIntensity    = num(C.bloomIntensity, 0),
+			bloomSize         = num(C.bloomSize, 24),
+			bloomThreshold    = num(C.bloomThreshold, 0.95),
+			blurSize          = num(C.blurSize, 0),
+			saturation        = num(C.saturation, 0),
+			contrast          = num(C.contrast, 0),
+			tintColorC        = rgb(C.tintColor),
+			sunRays           = num(C.sunRays, 0),
+			sunRaysSpread     = num(C.sunRaysSpread, 1),
+			dofEnabled        = tog(C.dofEnabled),
+			dofFocus          = num(C.dofFocus, 50),
+			dofRadius         = num(C.dofRadius, 25),
+			dofNear           = num(C.dofNear, 0),
+			dofFar            = num(C.dofFar, 0),
 		}
+	end
+
+	-- Post-effects: find existing child of Lighting OR create + tag one
+	-- so we can clean it up on disable.
+	local _NEP_TAG = "NeptuneAtmosphereOwned"
+	local function getOrCreateEffect(class)
+		local found = Lighting:FindFirstChildOfClass(class)
+		if found then return found, false end
+		local ok, inst = pcall(function() return Instance.new(class) end)
+		if not ok or not inst then return nil, false end
+		inst.Parent = Lighting
+		inst:SetAttribute(_NEP_TAG, true)
+		return inst, true
 	end
 
 	-- Apply a config table to Lighting (smooth tween for numeric props).
@@ -38539,6 +38597,12 @@ run(function()
 			TweenService:Create(Lighting, TweenInfo.new(0.35), tweenProps):Play()
 		end)
 		Lighting.GlobalShadows = (s.globalShadows == nil) and true or s.globalShadows
+		-- Newer Lighting numeric props (don't break on older clients)
+		pcall(function() Lighting.GeographicLatitude = s.geoLatitude end)
+		pcall(function() Lighting.ShadowSoftness = s.shadowSoft end)
+		pcall(function() Lighting.EnvironmentDiffuseScale = s.envDiffuse end)
+		pcall(function() Lighting.EnvironmentSpecularScale = s.envSpecular end)
+		-- Atmosphere instance
 		local atmo = Lighting:FindFirstChildOfClass("Atmosphere")
 		if atmo then
 			pcall(function()
@@ -38548,6 +38612,41 @@ run(function()
 				atmo.Haze = s.atmoHaze
 				atmo.Offset = s.atmoOffset
 			end)
+		end
+		-- Post-effects (created on demand, cleaned up on disable)
+		if s.bloomIntensity and s.bloomIntensity > 0 then
+			local b = getOrCreateEffect("BloomEffect")
+			if b then pcall(function() b.Intensity = s.bloomIntensity; b.Size = s.bloomSize; b.Threshold = s.bloomThreshold end) end
+		end
+		if s.blurSize and s.blurSize > 0 then
+			local bl = getOrCreateEffect("BlurEffect")
+			if bl then pcall(function() bl.Size = s.blurSize end) end
+		end
+		-- ColorCorrection: always present when any of its sliders ~= identity
+		if s.saturation ~= 0 or s.contrast ~= 0 or (s.tintColorC and (s.tintColorC.R ~= 1 or s.tintColorC.G ~= 1 or s.tintColorC.B ~= 1)) then
+			local cc = getOrCreateEffect("ColorCorrectionEffect")
+			if cc then pcall(function() cc.Saturation = s.saturation; cc.Contrast = s.contrast; cc.TintColor = s.tintColorC end) end
+		end
+		if s.sunRays and s.sunRays > 0 then
+			local sr = getOrCreateEffect("SunRaysEffect")
+			if sr then pcall(function() sr.Intensity = s.sunRays; sr.Spread = s.sunRaysSpread end) end
+		end
+		if s.dofEnabled then
+			local d = getOrCreateEffect("DepthOfFieldEffect")
+			if d then pcall(function()
+				d.FocusDistance = s.dofFocus
+				d.InFocusRadius = s.dofRadius
+				d.NearIntensity = s.dofNear
+				d.FarIntensity = s.dofFar
+			end) end
+		end
+	end
+
+	local function cleanupEffects()
+		for _, child in ipairs(Lighting:GetChildren()) do
+			if child:GetAttribute(_NEP_TAG) then
+				pcall(function() child:Destroy() end)
+			end
 		end
 	end
 
@@ -38599,6 +38698,24 @@ run(function()
 		setSlider(C.atmoGlare, p.atmoGlare)
 		setSlider(C.atmoHaze, p.atmoHaze)
 		setSlider(C.atmoOffset, p.atmoOffset)
+		-- Post-effect properties (only set if the preset defines them)
+		if p.bloomIntensity ~= nil then setSlider(C.bloomIntensity, p.bloomIntensity) end
+		if p.bloomSize ~= nil      then setSlider(C.bloomSize, p.bloomSize) end
+		if p.bloomThreshold ~= nil then setSlider(C.bloomThreshold, p.bloomThreshold) end
+		if p.blurSize ~= nil       then setSlider(C.blurSize, p.blurSize) end
+		if p.saturation ~= nil     then setSlider(C.saturation, p.saturation) end
+		if p.contrast ~= nil       then setSlider(C.contrast, p.contrast) end
+		if p.tintColor ~= nil      then setCS(C.tintColor, p.tintColor) end
+		if p.sunRays ~= nil        then setSlider(C.sunRays, p.sunRays) end
+		if p.sunRaysSpread ~= nil  then setSlider(C.sunRaysSpread, p.sunRaysSpread) end
+		-- Presets that DON'T set a post-effect property reset it to 0 (off)
+		-- so previously-active effects don't bleed into the new preset.
+		if p.bloomIntensity == nil then setSlider(C.bloomIntensity, 0) end
+		if p.blurSize == nil       then setSlider(C.blurSize, 0) end
+		if p.saturation == nil     then setSlider(C.saturation, 0) end
+		if p.contrast == nil       then setSlider(C.contrast, 0) end
+		if p.sunRays == nil        then setSlider(C.sunRays, 0) end
+		if p.tintColor == nil      then setCS(C.tintColor, {255,255,255}) end
 		suppressCallback = false
 		applyState()
 	end
@@ -38615,12 +38732,13 @@ run(function()
 
 	Atmosphere = vape.Categories.Render:CreateModule({
 		Name = "Atmosphere",
-		Tooltip = "Full Lighting + Atmosphere editor. Pick a preset to snap every slider to that preset's values, then tweak any slider to switch to Custom mode. Toggle off to restore the original Lighting snapshot.",
+		Tooltip = "Full Lighting + Atmosphere editor with post-effects (Bloom / Blur / Color Correction / Sun Rays / DOF) and a live Day Cycle animator. Pick a preset to snap every slider to that preset's values, then tweak any slider to switch to Custom mode. Toggle off restores the original Lighting snapshot and removes any post-effects Neptune created.",
 		Function = function(state)
 			if state then
 				capture()
 				applyState()
 			else
+				cleanupEffects()
 				if not snap then return end
 				pcall(function()
 					TweenService:Create(Lighting, TweenInfo.new(0.6), {
@@ -38649,9 +38767,12 @@ run(function()
 
 	PresetDD = Atmosphere:CreateDropdown({
 		Name = "Preset",
-		List = {"Default", "Custom", "Night", "Vaporwave", "Neon", "Cinematic", "Sunset", "Foggy", "Hell", "Underwater", "Blood", "Pastel", "Cyberpunk", "Matrix"},
+		List = {"Default", "Custom",
+		        "Night", "Vaporwave", "Neon", "Cinematic", "Sunset", "Foggy", "Hell", "Underwater",
+		        "Blood", "Pastel", "Cyberpunk", "Matrix",
+		        "Dreamy", "Apocalypse", "Movie", "Frostbite"},
 		Default = "Cinematic",
-		Tooltip = "Preset picker. Default = restore original Lighting. Custom = use whatever the sliders currently say. Other = snap every slider to that preset's values then apply.",
+		Tooltip = "Preset picker. Default = restore original Lighting. Custom = use whatever the sliders currently say. Other = snap every slider to that preset's values then apply. The 'visual' presets (Dreamy / Movie / Apocalypse / Frostbite / Matrix) use post-effects too (bloom / blur / color correction).",
 		Function = function(val) snapControlsToPreset(val) end,
 	})
 
@@ -38754,6 +38875,162 @@ run(function()
 		Tooltip = "Atmosphere.Offset — horizon offset (0 = horizon stays at world bottom, 1 = floats up).",
 		Function = function() onUserEdit() end,
 	})
+
+	-- --------- Newer Lighting numerics ---------
+	C.geoLatitude = Atmosphere:CreateSlider({
+		Name = "Geographic Latitude",
+		Min = 0, Max = 90, Default = 41.733, Decimal = 1, Suffix = "°",
+		Tooltip = "Lighting.GeographicLatitude — sun azimuth offset by latitude. Affects how the sun arcs across the sky.",
+		Function = function() onUserEdit() end,
+	})
+	C.shadowSoft = Atmosphere:CreateSlider({
+		Name = "Shadow Softness",
+		Min = 0, Max = 1, Default = 0.2, Decimal = 2,
+		Tooltip = "Lighting.ShadowSoftness — 0 = sharp shadows, 1 = soft blurred shadows.",
+		Function = function() onUserEdit() end,
+	})
+	C.envDiffuse = Atmosphere:CreateSlider({
+		Name = "Env Diffuse",
+		Min = 0, Max = 1, Default = 0, Decimal = 2,
+		Tooltip = "Lighting.EnvironmentDiffuseScale — how much skybox color bleeds into world diffuse lighting.",
+		Function = function() onUserEdit() end,
+	})
+	C.envSpecular = Atmosphere:CreateSlider({
+		Name = "Env Specular",
+		Min = 0, Max = 1, Default = 0, Decimal = 2,
+		Tooltip = "Lighting.EnvironmentSpecularScale — how much skybox color reflects on shiny surfaces.",
+		Function = function() onUserEdit() end,
+	})
+
+	-- --------- Post-effects: Bloom ---------
+	C.bloomIntensity = Atmosphere:CreateSlider({
+		Name = "Bloom Intensity",
+		Min = 0, Max = 4, Default = 0, Decimal = 2,
+		Tooltip = "BloomEffect.Intensity — strength of the glow effect on bright surfaces. 0 = off, 4 = blinding. Auto-creates the effect if missing.",
+		Function = function() onUserEdit() end,
+	})
+	C.bloomSize = Atmosphere:CreateSlider({
+		Name = "Bloom Size",
+		Min = 0, Max = 56, Default = 24,
+		Tooltip = "BloomEffect.Size — bloom blur radius in pixels.",
+		Function = function() onUserEdit() end,
+	})
+	C.bloomThreshold = Atmosphere:CreateSlider({
+		Name = "Bloom Threshold",
+		Min = 0, Max = 4, Default = 0.95, Decimal = 2,
+		Tooltip = "BloomEffect.Threshold — only surfaces brighter than this contribute to the bloom. Lower = more stuff glows.",
+		Function = function() onUserEdit() end,
+	})
+
+	-- --------- Post-effects: Blur ---------
+	C.blurSize = Atmosphere:CreateSlider({
+		Name = "Blur Size",
+		Min = 0, Max = 56, Default = 0,
+		Tooltip = "BlurEffect.Size — full-screen gaussian blur radius. 0 = off. Adds a dreamy/drunk look.",
+		Function = function() onUserEdit() end,
+	})
+
+	-- --------- Post-effects: ColorCorrection ---------
+	C.saturation = Atmosphere:CreateSlider({
+		Name = "Saturation",
+		Min = -1, Max = 1, Default = 0, Decimal = 2,
+		Tooltip = "ColorCorrectionEffect.Saturation. -1 = grayscale, 0 = normal, 1 = oversaturated.",
+		Function = function() onUserEdit() end,
+	})
+	C.contrast = Atmosphere:CreateSlider({
+		Name = "Contrast",
+		Min = -1, Max = 1, Default = 0, Decimal = 2,
+		Tooltip = "ColorCorrectionEffect.Contrast. -1 = washed out, 0 = normal, 1 = punchy.",
+		Function = function() onUserEdit() end,
+	})
+	C.tintColor = Atmosphere:CreateColorSlider({
+		Name = "Tint Color",
+		Default = Color3.fromRGB(255,255,255),
+		Tooltip = "ColorCorrectionEffect.TintColor — multiplies every pixel by this color. White = no tint, pink = pink tint, etc.",
+		Function = function() onUserEdit() end,
+	})
+
+	-- --------- Post-effects: Sun Rays + Depth of Field ---------
+	C.sunRays = Atmosphere:CreateSlider({
+		Name = "Sun Rays",
+		Min = 0, Max = 1, Default = 0, Decimal = 2,
+		Tooltip = "SunRaysEffect.Intensity — god-ray streaks from the sun. 0 = off.",
+		Function = function() onUserEdit() end,
+	})
+	C.sunRaysSpread = Atmosphere:CreateSlider({
+		Name = "Sun Rays Spread",
+		Min = 0, Max = 1, Default = 1, Decimal = 2,
+		Tooltip = "SunRaysEffect.Spread — width of the god-ray fan.",
+		Function = function() onUserEdit() end,
+	})
+	C.dofEnabled = Atmosphere:CreateToggle({
+		Name = "Depth of Field",
+		Default = false,
+		Tooltip = "Enable a DepthOfFieldEffect — blurs everything outside the focus range. Cinematic.",
+		Function = function() onUserEdit() end,
+	})
+	C.dofFocus = Atmosphere:CreateSlider({
+		Name = "DOF Focus Distance",
+		Min = 0, Max = 200, Default = 50, Suffix = " studs",
+		Tooltip = "DepthOfFieldEffect.FocusDistance — how far away the in-focus point is.",
+		Function = function() onUserEdit() end,
+	})
+	C.dofRadius = Atmosphere:CreateSlider({
+		Name = "DOF Focus Width",
+		Min = 0, Max = 100, Default = 25, Suffix = " studs",
+		Tooltip = "DepthOfFieldEffect.InFocusRadius — half-width of the sharp band around focus.",
+		Function = function() onUserEdit() end,
+	})
+	C.dofNear = Atmosphere:CreateSlider({
+		Name = "DOF Near Blur",
+		Min = 0, Max = 1, Default = 0.5, Decimal = 2,
+		Tooltip = "DepthOfFieldEffect.NearIntensity — blur for objects nearer than focus.",
+		Function = function() onUserEdit() end,
+	})
+	C.dofFar = Atmosphere:CreateSlider({
+		Name = "DOF Far Blur",
+		Min = 0, Max = 1, Default = 0.5, Decimal = 2,
+		Tooltip = "DepthOfFieldEffect.FarIntensity — blur for objects past focus.",
+		Function = function() onUserEdit() end,
+	})
+
+	-- --------- Day Cycle (live ClockTime animator) ---------
+	local daySpeedSlider, dayReverseToggle
+	daySpeedSlider = Atmosphere:CreateSlider({
+		Name = "Day Cycle Speed",
+		Min = 0, Max = 60, Default = 0, Decimal = 2, Suffix = "x",
+		Tooltip = "Animate ClockTime live. 0 = static (slider controls time). 1 = real-time speed (24-hour day cycles in 24 seconds). 60 = full day cycle in 0.4 seconds. Override the Clock Time slider while active.",
+	})
+	dayReverseToggle = Atmosphere:CreateToggle({
+		Name = "Day Cycle Reverse",
+		Default = false,
+		Tooltip = "Run the day cycle backwards (night -> evening -> day).",
+	})
+	task.spawn(function()
+		local accum = 0
+		local lastTick = tick()
+		while true do
+			local now = tick()
+			local dt = now - lastTick
+			lastTick = now
+			if Atmosphere and Atmosphere.Enabled and daySpeedSlider and daySpeedSlider.Value > 0 then
+				accum = accum + dt * daySpeedSlider.Value
+				if accum >= 0.05 then -- update at ~20 Hz
+					local delta = accum
+					accum = 0
+					local sign = (dayReverseToggle and dayReverseToggle.Enabled) and -1 or 1
+					-- Bypass the slider:onUserEdit callback so the day animator
+					-- doesn't constantly flip the preset to Custom.
+					suppressCallback = true
+					local newT = ((C.clockTime.Value or 12) + sign * delta) % 24
+					pcall(function() C.clockTime:SetValue(newT) end)
+					suppressCallback = false
+					pcall(function() Lighting.ClockTime = newT end)
+				end
+			end
+			task.wait(0.05)
+		end
+	end)
 
 	-- --------- Behavior toggles ---------
 	Atmosphere:CreateToggle({
