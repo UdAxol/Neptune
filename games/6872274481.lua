@@ -1,3 +1,24 @@
+-- ===== NEPTUNE: full universal wipe (per-user-request) =====
+-- Strip every universal module in user-facing categories before neptune
+-- registers its own set. vape.Libraries stays intact (neptune's prelude
+-- reads from it). No merge, no Function chaining — neptune stands alone.
+do
+    local _v = shared.vape
+    if _v and _v.Modules and type(_v.Remove) == 'function' then
+        local _wipeCats = {Combat=true,Blatant=true,Render=true,Legit=true,
+                           Utility=true,World=true,Inventory=true,
+                           Minigames=true,Kits=true,BoostFPS=true}
+        local _to = {}
+        for n, m in pairs(_v.Modules) do
+            if type(m) == 'table' and m.Category and _wipeCats[m.Category] then
+                _to[#_to+1] = n
+            end
+        end
+        for _, n in ipairs(_to) do pcall(function() _v:Remove(n) end) end
+        warn('[NEPTUNE] full universal wipe: ' .. tostring(#_to) .. ' modules removed')
+    end
+end
+
 local run = function(func)
     local ok, err = pcall(func)
     if not ok then
@@ -38429,4 +38450,133 @@ run(function()
 			end)
 		end,
 	})
+end)
+
+
+-- ===== Neptune AutoSword =====
+run(function()
+    local AutoSword
+    local SlotSlider, ReequipOnRespawn, NotifySwitch, BlacklistBox
+    local equipping = false
+    local blacklist = {}
+
+    -- Bedwars sword tier ordering (highest -> lowest). Items not in the map
+    -- get tier 0. List sourced from the bedwars ItemMeta naming convention.
+    local TIER = {
+        emerald_sword     = 100,
+        diamond_sword     = 90,
+        gold_sword        = 80,
+        iron_sword        = 70,
+        stone_sword       = 50,
+        wood_sword        = 30,
+        captains_cutlass  = 95,  -- premium / event swords
+        flaming_sword     = 88,
+        ender_sword       = 92,
+    }
+
+    local function bestSwordInInventory()
+        if not bedwars or not bedwars.Store then return nil, nil end
+        local inv = bedwars.Store:getState()
+            and bedwars.Store:getState().Inventory
+            and bedwars.Store:getState().Inventory.inventory
+        if not inv or type(inv.items) ~= 'table' then return nil, nil end
+        local bestTier, bestSlot, bestItem = -1, nil, nil
+        for slot, item in pairs(inv.items) do
+            if item and item.itemType then
+                local n = tostring(item.itemType):lower()
+                if blacklist[n] then continue end
+                local meta = bedwars.ItemMeta and bedwars.ItemMeta[n]
+                local isSword = (meta and meta.sword) or n:find('sword') or n:find('cutlass') or n:find('blade')
+                if isSword then
+                    local tier = TIER[n] or (meta and meta.swordDamage and meta.swordDamage * 5) or 1
+                    if tier > bestTier then
+                        bestTier, bestSlot, bestItem = tier, slot, item
+                    end
+                end
+            end
+        end
+        return bestItem, bestSlot
+    end
+
+    local function equipBest()
+        if equipping then return end
+        if not bedwars or not bedwars.Store then return end
+        equipping = true
+        local ok, err = pcall(function()
+            local target = SlotSlider and SlotSlider.Value or 1
+            target = math.clamp(math.floor(target), 1, 9)
+            local item, _slot = bestSwordInInventory()
+            if not item then return end
+            -- Already on the hotbar? Find current slot and re-equip target hotbar slot.
+            local hotbar = bedwars.Store:getState().Inventory
+                and bedwars.Store:getState().Inventory.hotbar
+            if hotbar then
+                for hs, hot in pairs(hotbar) do
+                    if hot.item and hot.item.itemType == item.itemType then
+                        -- Already in hotbar — just select it
+                        pcall(function() lplr.Character:FindFirstChildOfClass('Humanoid'):EquipTool(nil) end)
+                        return
+                    end
+                end
+            end
+            -- Move into target hotbar slot
+            bedwars.Store:dispatch({
+                type = 'InventoryAddToHotbar',
+                item = item,
+                slot = target - 1,
+            })
+            if NotifySwitch and NotifySwitch.Enabled and shared.vape and shared.vape.CreateNotification then
+                shared.vape:CreateNotification('AutoSword',
+                    'Equipped ' .. tostring(item.itemType) .. ' -> slot ' .. tostring(target), 3)
+            end
+        end)
+        equipping = false
+        if not ok then warn('[NEPTUNE] AutoSword equip error: ' .. tostring(err)) end
+    end
+
+    AutoSword = vape.Categories.Inventory:CreateModule({
+        Name = 'AutoSword',
+        Tooltip = 'Auto-equip the highest-tier sword from your inventory to a chosen hotbar slot. Re-evaluates on every inventory change so a fresh buy gets equipped instantly.',
+        Function = function(state)
+            if state then
+                task.spawn(equipBest)
+                AutoSword:Clean(vapeEvents.InventoryAmountChanged.Event:Connect(equipBest))
+                AutoSword:Clean(vapeEvents.InventoryChanged.Event:Connect(equipBest))
+                if ReequipOnRespawn and ReequipOnRespawn.Enabled then
+                    AutoSword:Clean(lplr.CharacterAdded:Connect(function()
+                        task.wait(2)
+                        equipBest()
+                    end))
+                end
+            end
+        end,
+    })
+
+    SlotSlider = AutoSword:CreateSlider({
+        Name = 'Hotbar Slot',
+        Min = 1, Max = 9, Default = 1, Suffix = '',
+        Tooltip = 'Which hotbar slot (1-9) the equipped sword should land in.',
+    })
+    ReequipOnRespawn = AutoSword:CreateToggle({
+        Name = 'Re-equip On Respawn',
+        Default = true,
+        Tooltip = 'Re-equip the best sword 2 seconds after each respawn so you start every life armed.',
+    })
+    NotifySwitch = AutoSword:CreateToggle({
+        Name = 'Notify on Switch',
+        Default = false,
+        Tooltip = 'Pop a Neptune toast each time AutoSword equips a different sword.',
+    })
+    BlacklistBox = AutoSword:CreateTextBox({
+        Name = 'Blacklist',
+        Default = '',
+        Placeholder = 'comma-separated, e.g. wood_sword,stone_sword',
+        Tooltip = 'Comma-separated ItemMeta names to skip even if theyre swords. Lets you avoid junk swords picked up in the lobby.',
+        Function = function(t)
+            blacklist = {}
+            for piece in string.gmatch(tostring(t or ''), '[^,%s]+') do
+                blacklist[piece:lower()] = true
+            end
+        end,
+    })
 end)
