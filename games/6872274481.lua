@@ -29386,6 +29386,31 @@ run(function()
 		Tooltip = "Client-sided item skin changer",
 	})
 
+	local _NEP_SkinReapply
+	_NEP_SkinReapply = SkinChanger:CreateToggle({
+		Name = 'Force Reapply',
+		Default = false,
+		Tooltip = 'One-shot recovery for skins that fail to reapply after respawn or kit change. Toggling this re-runs the hookViewmodel chain. Auto-resets after firing.',
+		Function = function(state)
+			if state and SkinChanger.Enabled then
+				SkinChanger:Toggle(); task.wait(0.05); SkinChanger:Toggle()
+				task.defer(function() if _NEP_SkinReapply.Enabled then _NEP_SkinReapply:Toggle() end end)
+			end
+		end,
+	})
+	SkinChanger:CreateToggle({
+		Name = 'Auto Reapply On Respawn',
+		Default = true,
+		Tooltip = 'Re-trigger the skin hook 2 seconds after every respawn so kit changes or character resets dont leave you with vanilla weapon visuals.',
+		Function = function(state)
+			if state then
+				SkinChanger:Clean(lplr.CharacterAdded:Connect(function()
+					task.wait(2)
+					if SkinChanger.Enabled then SkinChanger:Toggle(); task.wait(0.05); SkinChanger:Toggle() end
+				end))
+			end
+		end,
+	})
 	SkinChanger:CreateDropdown({
 		Name = "Item Skin",
 		List = skinNames,
@@ -34434,39 +34459,74 @@ run(function()
 	local old = tick()
 	Desync = vape.Categories.Blatant:CreateModule({
 		Name = "Desync",
-		Tooltip = 'uses various methods to desync ur position',
+		Tooltip = 'Desync your position. Default method: Hipheight (no remotes, no fflag, no raknet). RAKNET METHOD CAN GET YOU BANNED -- only enable if you understand the risk.',
 		Function = function(callback)
+			local method = (_G.NeptuneDesyncMethod and _G.NeptuneDesyncMethod.Value) or 'Hipheight'
+			_G.__neptune_desync_active = callback
 			if callback then
-				if rakNet then
-					vape:CreateNotification("Neptune","Raknet is supported! using server-sided desync. (this may result in a roblox ban)",12,'warning')
-					raknet.add_send_hook(rakhook)
-				else
-					task.wait(0.1)
-					vape:CreateNotification("Neptune","Raknet isnt supported? resulting to use setfflag",8)
-					local suc, res = pcall(function()
-						setfflag('NextGenReplicatorEnabledWrite4', 'true')
-					end)
-					if not suc or not res then
-						task.wait(0.2)
-						vape:CreateNotification("Neptune","setfflag didnt work? executor doesnt support 'NextGenReplicatorEnabledWrite4'. turning Desync module off...",16,'alert')
+				if method == 'Hipheight' then
+					Desync:Clean(runService.Heartbeat:Connect(function()
+						if not _G.__neptune_desync_active then return end
+						if not entitylib or not entitylib.character or not entitylib.character.Humanoid then return end
+						local hum = entitylib.character.Humanoid
+						local amt = (_G.NeptuneDesyncHipAmt and _G.NeptuneDesyncHipAmt.Value) or 1.5
+						pcall(function() hum.HipHeight = 2 + math.sin(tick() * 12) * amt end)
+					end))
+					vape:CreateNotification("Neptune", "Desync method: Hipheight (safe -- client-side only)", 4)
+				elseif method == 'CFrame Jitter' then
+					Desync:Clean(runService.Heartbeat:Connect(function()
+						if not _G.__neptune_desync_active then return end
+						if not entitylib or not entitylib.character or not entitylib.character.RootPart then return end
+						local root = entitylib.character.RootPart
+						local amt = (_G.NeptuneDesyncCFAmt and _G.NeptuneDesyncCFAmt.Value) or 0.5
+						local jx, jz = math.random()*amt - amt/2, math.random()*amt - amt/2
+						pcall(function() root.CFrame = root.CFrame * CFrame.new(jx, 0, jz) end)
+					end))
+					vape:CreateNotification("Neptune", "Desync method: CFrame Jitter (safe -- client-side only)", 4)
+				elseif method == 'FFlag' then
+					local suc = pcall(function() setfflag('NextGenReplicatorEnabledWrite4', 'true') end)
+					if suc then
+						vape:CreateNotification("Neptune", "Desync method: FFlag (medium risk -- executor-supported only)", 6)
+					else
+						vape:CreateNotification("Neptune", "FFlag method failed -- executor doesnt support setfflag. Try a different method.", 8, 'alert')
 						Desync:Toggle()
-						vape:CreateNotification("Neptune", "Storing packets sent",8)
-						writefile('desyncError.txt', `stored at {tick() - old}'s desync failed to load up raknet and fflag`)
 					end
+				elseif method == 'Raknet' then
+					if not rakNet then
+						vape:CreateNotification("Neptune", "Raknet not supported by your executor. Switch to Hipheight or CFrame Jitter.", 8, 'alert')
+						Desync:Toggle(); return
+					end
+					vape:CreateNotification("Neptune", "WARNING: Raknet desync sends server-side packets -- RECENT BANS HAVE BEEN REPORTED. Use at your own risk.", 16, 'alert')
+					raknet.add_send_hook(rakhook)
 				end
 			else
-				if rakNet then
-					raknet.remove_send_hook(rakhook)
-				else
-					local suc, res = pcall(function()
-						setfflag('NextGenReplicatorEnabledWrite4', 'false')
-					end)
-					if not suc or not res then
-						return
-					end
+				if method == 'Raknet' and rakNet then
+					pcall(function() raknet.remove_send_hook(rakhook) end)
+				elseif method == 'FFlag' then
+					pcall(function() setfflag('NextGenReplicatorEnabledWrite4', 'false') end)
+				end
+				if entitylib and entitylib.character and entitylib.character.Humanoid then
+					pcall(function() entitylib.character.Humanoid.HipHeight = 2 end)
 				end
 			end
 		end
+	})
+	_G.NeptuneDesyncMethod = Desync:CreateDropdown({
+		Name = 'Method',
+		List = {'Hipheight', 'CFrame Jitter', 'FFlag', 'Raknet'},
+		Default = 'Hipheight',
+		Tooltip = 'Hipheight = safest, pure client-side animation. CFrame Jitter = client-side root jitter. FFlag = executor setfflag (medium risk). Raknet = server-side packets (HIGH BAN RISK -- recent bans reported).',
+		Function = function() if Desync.Enabled then Desync:Toggle(); Desync:Toggle() end end,
+	})
+	_G.NeptuneDesyncHipAmt = Desync:CreateSlider({
+		Name = 'Hipheight Amount',
+		Min = 0.1, Max = 4.0, Default = 1.5, Decimal = 2,
+		Tooltip = 'Amplitude of the hipheight oscillation (Hipheight method only).',
+	})
+	_G.NeptuneDesyncCFAmt = Desync:CreateSlider({
+		Name = 'CFrame Amount',
+		Min = 0.1, Max = 2.0, Default = 0.5, Decimal = 2,
+		Tooltip = 'Amplitude of the CFrame jitter (CFrame Jitter method only).',
 	})
 end)
 
