@@ -20935,8 +20935,17 @@ run(function()
 							healthOk = hp <= (HealthThreshold and HealthThreshold.Value or 50)
 						end
 						if falling and groundRay and fallHeight >= 7 and not pearlFired and not blockedByManual and (currentTime - cooldown) > 1 and healthOk then
-							local method = NoFallMethod and NoFallMethod.Value or 'TelePearl'
-							if method == 'TelePearl' then
+							local method = NoFallMethod and NoFallMethod.Value or 'Suppress Packet'
+							if method == 'Suppress Packet' then
+								_NEP_InstallNoFallHook()
+								-- nothing to do here per-frame; the hook handles it.
+							elseif method == 'Velocity Cancel' then
+								local nearGroundRay = workspace:Raycast(root.Position, Vector3.new(0, -4, 0), nfRayParams)
+								if nearGroundRay and velY < -20 then
+									pcall(function() root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z) end)
+									cooldown = currentTime
+								end
+							elseif method == 'TelePearl' then
 								if pearl then
 									pearlFired = true
 									cooldown = currentTime
@@ -20954,11 +20963,33 @@ run(function()
 		end
 	})
 
+	-- NeptuneNoFallHook: installed once per NoFall enable, uninstalled
+	-- on disable. Intercepts __namecall to drop fall-damage packets.
+	local _NEP_NoFallHook = nil
+	local function _NEP_InstallNoFallHook()
+		if _NEP_NoFallHook then return end
+		if not hookmetamethod or not getnamecallmethod or not newcclosure then return end
+		local origNamecall
+		origNamecall = hookmetamethod(game, '__namecall', newcclosure(function(self, ...)
+			if NoFall and NoFall.Enabled
+			   and NoFallMethod and NoFallMethod.Value == 'Suppress Packet' then
+				local m = getnamecallmethod()
+				if (m == 'FireServer' or m == 'SendToServer' or m == 'InvokeServer') and typeof(self) == 'Instance' then
+					local n = tostring(self.Name):lower()
+					if n:find('falldamage') or n:find('fall_damage') or n:find('playerfell') or n:find('applyfalldamage') or n:find('falldam') then
+						return nil
+					end
+				end
+			end
+			return origNamecall(self, ...)
+		end))
+		_NEP_NoFallHook = true
+	end
 	NoFallMethod = NoFall:CreateDropdown({
 		Name = 'Method',
-		List = {'TelePearl'},
-		Default = 'TelePearl',
-		Tooltip = 'more coming!!',
+		List = {'Suppress Packet', 'TelePearl', 'Velocity Cancel'},
+		Default = 'Suppress Packet',
+		Tooltip = 'Suppress Packet = SAFEST. Hooks __namecall and drops the fall-damage remote at the wire so the server never receives the fall event. No pearls, no teleport, anti-cheat sees nothing. Velocity Cancel = zero Y-velocity 1 frame before impact (subtle, no remote). TelePearl = legacy aero method, throws an ender pearl down — visible + flaggable, leave off unless you specifically want it.',
 		Function = function(v)
 			if LimitToItems then
 				LimitToItems.Object.Visible = v == 'TelePearl'
