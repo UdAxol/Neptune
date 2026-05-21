@@ -38758,6 +38758,11 @@ run(function()
 		if p.contrast == nil       then setSlider(C.contrast, 0) end
 		if p.sunRays == nil        then setSlider(C.sunRays, 0) end
 		if p.tintColor == nil      then setCS(C.tintColor, {255,255,255}) end
+		-- Sync dependent-slider visibility to the new preset values
+		local function vis(ctrl, v) if ctrl and ctrl.Object then ctrl.Object.Visible = v end end
+		local bi = (p.bloomIntensity or 0)
+		vis(C.bloomSize, bi > 0); vis(C.bloomThreshold, bi > 0)
+		vis(C.sunRaysSpread, (p.sunRays or 0) > 0)
 		suppressCallback = false
 		applyState()
 	end
@@ -38944,31 +38949,34 @@ run(function()
 		Function = function() onUserEdit() end,
 	})
 
-	-- --------- Post-effects: Bloom ---------
+	-- Bloom — Size/Threshold hide when Intensity == 0
+	local function setVis(ctrl, vis) if ctrl and ctrl.Object then ctrl.Object.Visible = vis end end
 	C.bloomIntensity = Atmosphere:CreateSlider({
 		Name = "Bloom Intensity",
 		Min = 0, Max = 4, Default = 0, Decimal = 2,
-		Tooltip = "BloomEffect.Intensity — strength of the glow effect on bright surfaces. 0 = off, 4 = blinding. Auto-creates the effect if missing.",
-		Function = function() onUserEdit() end,
+		Tooltip = "Glow on bright surfaces. 0 = off.",
+		Function = function(v)
+			onUserEdit()
+			setVis(C.bloomSize, v > 0); setVis(C.bloomThreshold, v > 0)
+		end,
 	})
 	C.bloomSize = Atmosphere:CreateSlider({
 		Name = "Bloom Size",
-		Min = 0, Max = 56, Default = 24,
-		Tooltip = "BloomEffect.Size — bloom blur radius in pixels.",
+		Min = 0, Max = 56, Default = 24, Visible = false,
+		Tooltip = "Bloom blur radius (pixels).",
 		Function = function() onUserEdit() end,
 	})
 	C.bloomThreshold = Atmosphere:CreateSlider({
 		Name = "Bloom Threshold",
-		Min = 0, Max = 4, Default = 0.95, Decimal = 2,
-		Tooltip = "BloomEffect.Threshold — only surfaces brighter than this contribute to the bloom. Lower = more stuff glows.",
+		Min = 0, Max = 4, Default = 0.95, Decimal = 2, Visible = false,
+		Tooltip = "Min brightness that triggers bloom. Lower = more glow.",
 		Function = function() onUserEdit() end,
 	})
 
-	-- --------- Post-effects: Blur ---------
 	C.blurSize = Atmosphere:CreateSlider({
 		Name = "Blur Size",
 		Min = 0, Max = 56, Default = 0,
-		Tooltip = "BlurEffect.Size — full-screen gaussian blur radius. 0 = off. Adds a dreamy/drunk look.",
+		Tooltip = "Full-screen gaussian blur radius. 0 = off.",
 		Function = function() onUserEdit() end,
 	})
 
@@ -38992,47 +39000,49 @@ run(function()
 		Function = function() onUserEdit() end,
 	})
 
-	-- --------- Post-effects: Sun Rays + Depth of Field ---------
+	-- Sun Rays — Spread hides when Intensity == 0
 	C.sunRays = Atmosphere:CreateSlider({
 		Name = "Sun Rays",
 		Min = 0, Max = 1, Default = 0, Decimal = 2,
-		Tooltip = "SunRaysEffect.Intensity — god-ray streaks from the sun. 0 = off.",
-		Function = function() onUserEdit() end,
+		Tooltip = "God-ray streaks from the sun. 0 = off.",
+		Function = function(v) onUserEdit(); setVis(C.sunRaysSpread, v > 0) end,
 	})
 	C.sunRaysSpread = Atmosphere:CreateSlider({
 		Name = "Sun Rays Spread",
-		Min = 0, Max = 1, Default = 1, Decimal = 2,
-		Tooltip = "SunRaysEffect.Spread — width of the god-ray fan.",
+		Min = 0, Max = 1, Default = 1, Decimal = 2, Visible = false,
+		Tooltip = "Width of the god-ray fan.",
 		Function = function() onUserEdit() end,
 	})
+
+	-- DOF — all 4 sliders hide when DOF toggle is off
 	C.dofEnabled = Atmosphere:CreateToggle({
 		Name = "Depth of Field",
 		Default = false,
-		Tooltip = "Enable a DepthOfFieldEffect — blurs everything outside the focus range. Cinematic.",
-		Function = function() onUserEdit() end,
+		Tooltip = "Blur outside the focus range. Cinematic.",
+		Function = function(state)
+			onUserEdit()
+			setVis(C.dofFocus, state); setVis(C.dofRadius, state)
+			setVis(C.dofNear, state); setVis(C.dofFar, state)
+		end,
 	})
 	C.dofFocus = Atmosphere:CreateSlider({
 		Name = "DOF Focus Distance",
-		Min = 0, Max = 200, Default = 50, Suffix = " studs",
-		Tooltip = "DepthOfFieldEffect.FocusDistance — how far away the in-focus point is.",
+		Min = 0, Max = 200, Default = 50, Suffix = " studs", Visible = false,
 		Function = function() onUserEdit() end,
 	})
 	C.dofRadius = Atmosphere:CreateSlider({
 		Name = "DOF Focus Width",
-		Min = 0, Max = 100, Default = 25, Suffix = " studs",
-		Tooltip = "DepthOfFieldEffect.InFocusRadius — half-width of the sharp band around focus.",
+		Min = 0, Max = 100, Default = 25, Suffix = " studs", Visible = false,
 		Function = function() onUserEdit() end,
 	})
 	C.dofNear = Atmosphere:CreateSlider({
 		Name = "DOF Near Blur",
-		Min = 0, Max = 1, Default = 0.5, Decimal = 2,
-		Tooltip = "DepthOfFieldEffect.NearIntensity — blur for objects nearer than focus.",
+		Min = 0, Max = 1, Default = 0.5, Decimal = 2, Visible = false,
 		Function = function() onUserEdit() end,
 	})
 	C.dofFar = Atmosphere:CreateSlider({
 		Name = "DOF Far Blur",
-		Min = 0, Max = 1, Default = 0.5, Decimal = 2,
-		Tooltip = "DepthOfFieldEffect.FarIntensity — blur for objects past focus.",
+		Min = 0, Max = 1, Default = 0.5, Decimal = 2, Visible = false,
 		Function = function() onUserEdit() end,
 	})
 
@@ -39089,28 +39099,6 @@ run(function()
 		end,
 	})
 
-	Atmosphere:CreateToggle({
-		Name = "Show Current Preset (debug)",
-		Default = false,
-		Tooltip = "Pop a notification every time the preset changes so you can see what the dropdown actually picked.",
-		Function = function(state)
-			if state then
-				task.spawn(function()
-					local last = nil
-					while state and Atmosphere.Enabled do
-						local cur = PresetDD and PresetDD.Value
-						if cur and cur ~= last then
-							if shared.vape and shared.vape.CreateNotification then
-								shared.vape:CreateNotification("Atmosphere", "Active preset: " .. tostring(cur), 3)
-							end
-							last = cur
-						end
-						task.wait(1)
-					end
-				end)
-			end
-		end,
-	})
 end)
 
 -- ============================================================
