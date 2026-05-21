@@ -31395,6 +31395,7 @@ run(function()
 					local camPos = gameCamera.CFrame.Position
 					local dir = (targetPos - camPos).Unit
 
+					if not (_G.NeptuneSilentAuraSwingOnly and _G.NeptuneSilentAuraSwingOnly.Enabled) then
 					fireSilentAttack({
 						weapon = sword.tool,
 						entityInstance = ent.Character,
@@ -31408,6 +31409,7 @@ run(function()
 							selfPosition = {value = selfpos}
 						}
 					})
+					end
 				until not SilentAura.Enabled
 			end)
 		end
@@ -31417,6 +31419,7 @@ run(function()
 	SilentAura:CreateSlider({Name = 'Target Limit', Min = 1, Max = 6, Default = 1, Tooltip = 'Max simultaneous targets the silent aura will engage per swing tick.'})
 	_G.NeptuneSilentAuraCustomHR = SilentAura:CreateToggle({Name = 'Custom Hit Reg', Default = false, Tooltip = 'Override the default randomised hit registration rate with your own value. Off = vanilla (~34 CPS).'})
 	_G.NeptuneSilentAuraHRSlider = SilentAura:CreateSlider({Name = 'Hit Reg', Min = 1, Max = 40, Default = 34, Decimal = 1, Suffix = ' CPS', Tooltip = 'Effective swings-per-second the silent aura attempts when Custom Hit Reg is on. Higher = more aggressive but more detectable.'})
+	_G.NeptuneSilentAuraSwingOnly = SilentAura:CreateToggle({Name = 'Swing Only', Default = false, Tooltip = 'Play the swing animation cadence but never send a hit packet. Strictly legit-looking — no damage will land.'})
 
 
 	ExtendedRange = SilentAura:CreateToggle({
