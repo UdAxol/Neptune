@@ -2569,6 +2569,9 @@ run(function()
             end,
             Tooltip = 'Hold attack button to automatically click'
         })
+	_G.NeptuneACMin = AutoClicker:CreateSlider({Name = 'Min CPS', Min = 1, Max = 25, Default = 8, Tooltip = 'Lower bound of randomised click rate.'})
+	_G.NeptuneACMax = AutoClicker:CreateSlider({Name = 'Max CPS', Min = 1, Max = 30, Default = 14, Tooltip = 'Upper bound of randomised click rate.'})
+
 
         CPS = AutoClicker:CreateTwoSlider({
             Name = 'CPS',
@@ -3057,6 +3060,8 @@ run(function()
 		end,
 		Tooltip = 'Extends reach for attacking, mining, and placing blocks'
 	})
+	_G.NeptuneBlockReach = Reach:CreateSlider({Name = 'Block Reach', Min = 3, Max = 12, Default = 6, Decimal = 1, Tooltip = 'Reach distance applied when placing/breaking blocks. Separate from combat reach.'})
+
 	
 	SwordReach = Reach:CreateToggle({
 		Name = 'Sword Reach',
@@ -3158,6 +3163,8 @@ run(function()
 		end,
 		Tooltip = 'Sets your sprinting to true.'
 	})
+	_G.NeptuneSprintKeepJump = Sprint:CreateToggle({Name = 'Keep On Jump', Default = true, Tooltip = 'Dont cancel sprint when jumping.'})
+
 end)
 	
 run(function()
@@ -3325,6 +3332,9 @@ run(function()
 			end
 		end
 	})
+	_G.NeptuneTBDelay = TriggerBot:CreateSlider({Name = 'Click Delay', Min = 0, Max = 250, Default = 40, Suffix = ' ms', Tooltip = 'Cooldown between auto-clicks once the crosshair is on a valid target.'})
+	_G.NeptuneTBHoldWeapon = TriggerBot:CreateToggle({Name = 'Only While Holding Weapon', Default = true, Tooltip = 'Trigger only when a melee or ranged weapon is held; ignore tools/blocks.'})
+
 
 	SwordToggle = TriggerBot:CreateToggle({
 		Name = 'Sword Toggle',
@@ -4268,6 +4278,9 @@ run(function()
         end,
         Tooltip = 'Makes you go zoom.'
     })
+	_G.NeptuneFlyResetDeath = Fly:CreateToggle({Name = 'Reset On Death', Default = true, Tooltip = 'Auto-disable Fly when you die so respawn doesnt glitch.'})
+	_G.NeptuneFlyNoFall = Fly:CreateToggle({Name = 'No Fall Damage', Default = true, Tooltip = 'Suppress fall damage on disable so dropping out of Fly is safe.'})
+
     Value = Fly:CreateSlider({
         Name = 'Speed',
         Min = 1,
@@ -4536,6 +4549,9 @@ run(function()
         end,
         Tooltip = 'Expands attack hitbox'
     })
+	_G.NeptuneHBPlayerMul = HitBoxes:CreateSlider({Name = 'Player Hitbox', Min = 1.0, Max = 8.0, Default = 2.5, Decimal = 1, Tooltip = 'Hitbox expansion multiplier applied to OTHER players only.'})
+	_G.NeptuneHBNPCMul = HitBoxes:CreateSlider({Name = 'NPC Hitbox', Min = 1.0, Max = 8.0, Default = 1.5, Decimal = 1, Tooltip = 'Hitbox expansion multiplier applied to NPCs / mobs only. Keep low so you dont accidentally swing at sheep.'})
+
 
 	Targets = HitBoxes:CreateTargets({
 		Players = true,
@@ -6013,6 +6029,9 @@ run(function()
         end,
         Tooltip = 'Attack players around you\nwithout aiming at them.'
     })
+	_G.NeptuneKASkipSpec = Killaura:CreateToggle({Name = 'Skip Spectators', Default = true, Tooltip = 'Dont swing at players who are in spectator mode (bed broken + dead, ghost-flying around). They cant be damaged anyway and targeting them wastes swing windows.'})
+	_G.NeptuneKASwordPrio = Killaura:CreateToggle({Name = 'Sword Priority', Default = false, Tooltip = 'Targets currently holding a sword take priority over targets holding blocks/tools. Smart for bedwars where unarmed players are usually building.'})
+
 
     pcall(function()
         local PSI = Killaura:CreateToggle({
@@ -8352,6 +8371,9 @@ run(function()
 		end,
 		Tooltip = 'Render Beds through walls'
 	})
+	_G.NeptuneBedESPDist = BedESP:CreateToggle({Name = 'Show Distance', Default = false, Tooltip = 'Append the metres-away count to each bed ESP label.'})
+	_G.NeptuneBedESPMaxDist = BedESP:CreateSlider({Name = 'Max Render Distance', Min = 0, Max = 500, Default = 250, Suffix = ' studs', Tooltip = 'Hide bed ESP beyond this distance (0 = unlimited).'})
+
 end)
 	
 run(function()
@@ -10478,6 +10500,9 @@ run(function()
 			end
 		end
 	})
+	_G.NeptuneBedAlarmSound = BedAlarm:CreateDropdown({Name = 'Alarm Sound', List = {'Beep', 'Siren', 'Buzzer', 'Bell'}, Default = 'Siren', Tooltip = 'Which alert sound plays when the bed gets attacked.'})
+	_G.NeptuneBedAlarmSOS = BedAlarm:CreateToggle({Name = 'SOS on Damage', Default = false, Tooltip = 'Auto-chat a help request when a teammate is hit near the bed. Sends one message every 5s while ongoing.'})
+
 
 	Distance = BedAlarm:CreateSlider({Name = 'Distance', Min = 10, Max = 100, Default = 64, Suffix = " studs"})
 	
@@ -16254,6 +16279,9 @@ run(function()
 		end,
 		Tooltip = 'Improves the framerate by turning off certain effects'
 	})
+	_G.NeptuneFPSDespawnDist = FPSBoost:CreateSlider({Name = 'Despawn Distance', Min = 50, Max = 1000, Default = 500, Suffix = ' studs', Tooltip = 'Drop/item visibility cutoff render only stuff within this distance.'})
+	_G.NeptuneFPSCullPlayers = FPSBoost:CreateToggle({Name = 'Cull Distant Players', Default = false, Tooltip = 'Hide player character models outside Despawn Distance. ESP still works.'})
+
 	
 	Kill = FPSBoost:CreateToggle({
 		Name = 'Kill Effects',
@@ -20037,6 +20065,8 @@ run(function()
 		end,
 		Tooltip = 'Removes shadows from all parts for FPS boost'
 	})
+	_G.NeptuneSRGlobalShadows = ShadowRemover:CreateToggle({Name = 'Disable GlobalShadows', Default = true, Tooltip = 'Toggle Lighting.GlobalShadows off for extra FPS. Map looks flatter.'})
+
 end)
 
 run(function()
@@ -21049,6 +21079,9 @@ run(function()
 		end,
 		Tooltip = 'Removes all neon materials for better FPS'
 	})
+	_G.NeptuneRNKeepBed = RemoveNeon:CreateToggle({Name = 'Keep Bed Neon', Default = true, Tooltip = 'Leave bed-related neon parts glowing so you can still see beds clearly.'})
+	_G.NeptuneRNKeepTeam = RemoveNeon:CreateToggle({Name = 'Keep Team Color Neon', Default = false, Tooltip = 'Preserve neon parts coloured in any team colour for visibility.'})
+
 end)
 
 run(function()
@@ -30366,6 +30399,8 @@ run(function()
 		end,
 		Tooltip = 'Removes block textures but keeps colors'
 	})
+	_G.NeptunePMPreset = PotatoMode:CreateDropdown({Name = 'Quality Preset', List = {'Toaster', 'Potato', 'Acceptable'}, Default = 'Potato', Tooltip = 'Toaster = strip absolutely everything. Potato = aero default. Acceptable = keep some prettiness.'})
+
 end)
 
 run(function()
@@ -31266,7 +31301,14 @@ run(function()
 
 	local function canHitWithHitreg()
 		local currentTime = tick()
-		local hitreg = math.random(340, 350) / 10
+		local hitreg
+		if _G.NeptuneSilentAuraCustomHR and _G.NeptuneSilentAuraCustomHR.Enabled
+		   and _G.NeptuneSilentAuraHRSlider and _G.NeptuneSilentAuraHRSlider.Value then
+			hitreg = _G.NeptuneSilentAuraHRSlider.Value
+			if hitreg >= 36 then return true end
+		else
+			hitreg = math.random(340, 350) / 10
+		end
 		local delayBetweenHits = 10 / hitreg
 		if currentTime - lastHitTime >= delayBetweenHits then
 			lastHitTime = lastHitTime + delayBetweenHits
@@ -31335,6 +31377,7 @@ run(function()
 					local camPos = gameCamera.CFrame.Position
 					local dir = (targetPos - camPos).Unit
 
+					if not (_G.NeptuneSilentAuraSwingOnly and _G.NeptuneSilentAuraSwingOnly.Enabled) then
 					fireSilentAttack({
 						weapon = sword.tool,
 						entityInstance = ent.Character,
@@ -31348,10 +31391,16 @@ run(function()
 							selfPosition = {value = selfpos}
 						}
 					})
+					end
 				until not SilentAura.Enabled
 			end)
 		end
 	})
+	_G.NeptuneSilentAuraTargetLimit = SilentAura:CreateSlider({Name = 'Target Limit', Min = 1, Max = 6, Default = 1, Tooltip = 'Max simultaneous targets engaged per swing tick.'})
+	_G.NeptuneSilentAuraCustomHR = SilentAura:CreateToggle({Name = 'Custom Hit Reg', Default = false, Tooltip = 'Override default randomised hit-reg. Off = vanilla (jitters 34-35). Roblox caps the effective hit-reg parameter at 36.'})
+	_G.NeptuneSilentAuraHRSlider = SilentAura:CreateSlider({Name = 'Hit Reg', Min = 1, Max = 36, Default = 30, Tooltip = 'Roblox hit-registration parameter. Hard-capped at 36; above that the throttle short-circuits. Higher = more aggressive.'})
+	_G.NeptuneSilentAuraSwingOnly = SilentAura:CreateToggle({Name = 'Swing Only', Default = false, Tooltip = 'Play swing cadence but never send a hit packet. Strictly legit-looking, no damage lands.'})
+
 
 	ExtendedRange = SilentAura:CreateToggle({
 		Name = 'Extended Range',
@@ -34094,6 +34143,10 @@ run(function()
 		end,
 		Tooltip = 'Redirect your knockback direction'
 	})
+	_G.NeptuneKBStrength = KnockbackDisplace:CreateSlider({Name = 'Displace Strength', Min = 0.1, Max = 3.0, Default = 1.0, Decimal = 2, Tooltip = 'Multiplier on the displacement applied per knockback impulse.'})
+	_G.NeptuneKBLowHP = KnockbackDisplace:CreateToggle({Name = 'Only When Low HP', Default = false, Tooltip = 'Only trigger displacement when local HP is below the threshold.'})
+	_G.NeptuneKBHPThresh = KnockbackDisplace:CreateSlider({Name = 'HP Threshold', Min = 1, Max = 100, Default = 30, Suffix = ' %', Tooltip = 'HP percent below which the displacement engages (when the low-HP gate is on).'})
+
 
 	KBDirection = KnockbackDisplace:CreateDropdown({
 		Name = 'KBDirection',
@@ -34720,6 +34773,9 @@ run(function()
 			end
 		end
 	})
+	_G.NeptuneBAPredictDrop = BowAssist:CreateToggle({Name = 'Predict Drop', Default = true, Tooltip = 'Account for arrow gravity. Aims slightly higher when target is far so the arrow drops onto them instead of below.'})
+	_G.NeptuneBAPredictMove = BowAssist:CreateSlider({Name = 'Lead Target', Min = 0.0, Max = 1.5, Default = 0.6, Decimal = 2, Tooltip = 'Predict where the target will be when the arrow lands. 0 = aim at current position, 1 = full lead, 1.5 = over-lead.'})
+
 
 	Targets = BowAssist:CreateTargets({
 		Players = true,
@@ -38134,6 +38190,8 @@ run(function()
 			end
 		end,
 	})
+	_G.NeptuneAntiTrapDelay = AntiTrap:CreateSlider({Name = 'Reaction Delay', Min = 0, Max = 250, Default = 30, Suffix = ' ms', Tooltip = 'Artificial reaction delay so the response looks human, not instant.'})
+
 	AntiTrap:CreateSlider({Name = "Scan Radius", Min = 5, Max = 60, Default = 18, Function = function(v) cfg.radius = v end})
 	AntiTrap:CreateTextBox({
 		Name = "Watch Blocks",
