@@ -1,53 +1,3 @@
--- Chunk-level run() shared across every do-block segment so neptune extras
--- and the neptune addon (which are in their own do-block scopes) can still
--- register modules with the same `run(function() ... end)` pattern that neptune
--- uses internally.
-local run = function(func)
-    local ok, err = pcall(func)
-    if not ok then
-        warn('[NEPTUNE] module failed to load: ' .. tostring(err))
-    end
-end
-getgenv()._neptune_run = run
-
--- NEPTUNE bedwars: FULL UNIVERSAL WIPE.
---
--- Per user: "Atp remove all universal." Every single module universal.lua
--- registered in a user-facing category gets wiped before neptune loads. No
--- ESP / Chams / Tracers / Arrows / Search / Waypoints / Health / PlayerModel
--- / GamingChair / nothing. If neptune or neptune doesn't have a bedwars version
--- it's gone — bedwars stands on its own.
---
--- vape.Libraries (entitylib, targetinfo, prediction, hash, etc.) is left
--- intact because neptune's prelude reads from it. Only registered MODULES get
--- nuked. Categories themselves stay (Combat / Blatant / Render etc. are
--- containers, not modules).
-do
-    local _v = shared.vape
-    if _v and _v.Modules and type(_v.Remove) == 'function' then
-        local _wipeCats = {Combat=true,Blatant=true,Render=true,Legit=true,
-                           Utility=true,World=true,Inventory=true,
-                           Minigames=true,Kits=true,BoostFPS=true}
-        local _toRemove = {}
-        for _name, _mod in pairs(_v.Modules) do
-            if type(_mod) == 'table' and _mod.Category and _wipeCats[_mod.Category] then
-                _toRemove[#_toRemove+1] = _name
-            end
-        end
-        for _, _name in ipairs(_toRemove) do
-            pcall(function() _v:Remove(_name) end)
-        end
-        warn('[NEPTUNE-DIAG] full universal wipe: removed ' .. tostring(#_toRemove)
-             .. ' modules across Combat/Blatant/Render/Legit/Utility/World/'
-             .. 'Inventory/Minigames/Kits/BoostFPS — neptune registers solo from here')
-    end
-end
-
-warn('[NEPTUNE-DIAG] bedwars chunk started; PlaceId=' .. tostring(game.PlaceId) .. ' shared.vape=' .. tostring(shared.vape and 'set' or 'nil'))
-if shared.vape and shared.vape.Categories then warn('[NEPTUNE-DIAG] Combat category present=' .. tostring(shared.vape.Categories.Combat ~= nil)) end
--- ===== NEPTUNE BEDWARS — neptune base =====
-warn('[NEPTUNE-DIAG] entering neptune block')
-local _aeroOk, _aeroErr = pcall(function()
 local run = function(func)
     local ok, err = pcall(func)
     if not ok then
@@ -2619,10 +2569,6 @@ run(function()
             end,
             Tooltip = 'Hold attack button to automatically click'
         })
-	AutoClicker:CreateSlider({Name = 'Min CPS', Min = 1, Max = 25, Default = 8, Tooltip = 'Lower bound of the randomised click rate.'})
-	AutoClicker:CreateSlider({Name = 'Max CPS', Min = 1, Max = 30, Default = 14, Tooltip = 'Upper bound of the randomised click rate.'})
-	AutoClicker:CreateToggle({Name = 'Pause on Menu Open', Default = true, Tooltip = 'Stop clicking while a Roblox menu or chatbox is focused.'})
-
 
         CPS = AutoClicker:CreateTwoSlider({
             Name = 'CPS',
@@ -2811,7 +2757,7 @@ run(function()
 
     local function createkitrender(plr)
         local icon = Instance.new("ImageLabel")
-        icon.Name = "Axolv4KitRender" 
+        icon.Name = "AeroV4KitRender" 
         icon.AnchorPoint = Vector2.new(1, 0.5)
         icon.BackgroundTransparency = 1
         icon.Position = UDim2.new(1.05, 0, 0.5, 0)
@@ -2843,7 +2789,7 @@ run(function()
         end
         
         for _, v in ipairs(PlayerGui:GetDescendants()) do
-            if v:IsA("ImageLabel") and v.Name == "Axolv4KitRender" then  
+            if v:IsA("ImageLabel") and v.Name == "AeroV4KitRender" then  
                 v:Destroy()
             end
         end
@@ -2906,7 +2852,7 @@ run(function()
             local card = container:FindFirstChild("1") and container["1"]:FindFirstChild("MatchDraftPlayerCard")
             if not card then return end
             
-            local icon = card:FindFirstChild("Axolv4KitRender")  
+            local icon = card:FindFirstChild("AeroV4KitRender")  
             if not icon then
                 icon = createkitrender(playerFound)
                 icon.Parent = card
@@ -2941,7 +2887,7 @@ run(function()
     local function createKitLabel(parent, kitImage)
         if kitLabels[parent] then kitLabels[parent]:Destroy() end
         local kitLabel = Instance.new("ImageLabel")
-        kitLabel.Name = "Axolv4KitIcon"
+        kitLabel.Name = "AeroV4KitIcon"
         kitLabel.Size = UDim2.new(1, 0, 1, 0)
         kitLabel.Position = UDim2.new(1.1, 0, 0, 0)
         kitLabel.BackgroundTransparency = 1
@@ -3111,9 +3057,6 @@ run(function()
 		end,
 		Tooltip = 'Extends reach for attacking, mining, and placing blocks'
 	})
-	Reach:CreateSlider({Name = 'Block Reach', Min = 3, Max = 12, Default = 6, Decimal = 1, Tooltip = 'Reach distance applied when placing or breaking blocks. Separate from combat reach.'})
-	Reach:CreateToggle({Name = 'Show Reach Circle', Default = false, Tooltip = 'Draw a ground circle visualising your current combat reach.'})
-
 	
 	SwordReach = Reach:CreateToggle({
 		Name = 'Sword Reach',
@@ -3215,9 +3158,6 @@ run(function()
 		end,
 		Tooltip = 'Sets your sprinting to true.'
 	})
-	Sprint:CreateToggle({Name = 'Keep On Jump', Default = true, Tooltip = 'Don\'t cancel sprint when jumping.'})
-	Sprint:CreateToggle({Name = 'Auto Sprint', Default = false, Tooltip = 'Always sprint when moving forward without needing the sprint key held.'})
-
 end)
 	
 run(function()
@@ -3385,10 +3325,6 @@ run(function()
 			end
 		end
 	})
-	TriggerBot:CreateSlider({Name = 'Click Delay (ms)', Min = 0, Max = 250, Default = 40, Tooltip = 'Cooldown between auto-clicks once the crosshair is on a valid target.'})
-	TriggerBot:CreateToggle({Name = 'Only While Holding Weapon', Default = true, Tooltip = 'Trigger only when a melee or ranged weapon is held; ignore tools/blocks.'})
-	TriggerBot:CreateToggle({Name = 'Require Line of Sight', Default = true, Tooltip = 'Skip the click if a wall is between the camera and the target.'})
-
 
 	SwordToggle = TriggerBot:CreateToggle({
 		Name = 'Sword Toggle',
@@ -4332,9 +4268,6 @@ run(function()
         end,
         Tooltip = 'Makes you go zoom.'
     })
-	Fly:CreateToggle({Name = 'Reset On Death', Default = true, Tooltip = 'Auto-disable fly when local player dies so respawn doesn\'t glitch.'})
-	Fly:CreateToggle({Name = 'No Fall Damage', Default = true, Tooltip = 'Suppress fall damage on disable so dropping out of fly is safe.'})
-
     Value = Fly:CreateSlider({
         Name = 'Speed',
         Min = 1,
@@ -8419,10 +8352,6 @@ run(function()
 		end,
 		Tooltip = 'Render Beds through walls'
 	})
-	BedESP:CreateToggle({Name = 'Show Distance', Default = false, Tooltip = 'Append the metres-away count to each bed ESP label.'})
-	BedESP:CreateToggle({Name = 'Show Team Name', Default = true, Tooltip = 'Include the team name alongside the bed marker.'})
-	BedESP:CreateSlider({Name = 'Max Render Distance', Min = 0, Max = 500, Default = 250, Suffix = ' studs', Tooltip = 'Hide bed ESP beyond this distance (0 = unlimited).'})
-
 end)
 	
 run(function()
@@ -16325,11 +16254,6 @@ run(function()
 		end,
 		Tooltip = 'Improves the framerate by turning off certain effects'
 	})
-	FPSBoost:CreateToggle({Name = 'Aggressive Mode', Default = false, Tooltip = 'Strip even more visual stuff (particles, beams, smoke, sparkles, trails) on top of the default removals. Bigger FPS win, uglier game.'})
-	FPSBoost:CreateSlider({Name = 'Despawn Distance', Min = 50, Max = 1000, Default = 500, Suffix = ' studs', Tooltip = 'Drop / item / loose part visibility cutoff — render only stuff within this distance.'})
-	FPSBoost:CreateToggle({Name = 'Disable Mesh Textures', Default = false, Tooltip = 'Replace all MeshPart TextureIDs with empty string. Flat colors only. Big FPS gain, ugly.'})
-	FPSBoost:CreateToggle({Name = 'Cull Distant Players', Default = false, Tooltip = 'Hide player character models outside Despawn Distance. ESP still works.'})
-
 	
 	Kill = FPSBoost:CreateToggle({
 		Name = 'Kill Effects',
@@ -17585,9 +17509,9 @@ run(function()
 	local processing = {}
 
 	local _req = (syn and syn.request) or (http_request and function(t) return http_request(t) end) or request or function() return {Body='{}'} end
-	if not getgenv()._axolv4_getBackendUrl then
+	if not getgenv()._aerov4_getBackendUrl then
 		local _cachedUrl
-		getgenv()._axolv4_getBackendUrl = function()
+		getgenv()._aerov4_getBackendUrl = function()
 			if _cachedUrl then return _cachedUrl end
 			local ok, res = pcall(function()
 				return _req({Url='https://gist.githubusercontent.com/poopparty/a817668f8805b6d44fa54ff13dc8edf4/raw/url.txt',Method='GET'})
@@ -17598,7 +17522,7 @@ run(function()
 			return _cachedUrl
 		end
 	end
-	local _bu = getgenv()._axolv4_getBackendUrl
+	local _bu = getgenv()._aerov4_getBackendUrl
 
 	local listsLoaded = false
 	task.spawn(function()
@@ -17637,7 +17561,7 @@ run(function()
 		listsLoaded = true
 	end)
 
-	getgenv()._axolv4_staffCounts = {spec=0, closet=0, mod=0, impossible=0}
+	getgenv()._aerov4_staffCounts = {spec=0, closet=0, mod=0, impossible=0}
 	local function refreshStaffCounts()
 		local c = {spec=0, closet=0, mod=0, impossible=0}
 		for _, data in pairs(detectedPlayers) do
@@ -17647,7 +17571,7 @@ run(function()
 			elseif ct == 'impossible_join' then c.impossible += 1
 			else c.mod += 1 end
 		end
-		getgenv()._axolv4_staffCounts = c
+		getgenv()._aerov4_staffCounts = c
 		vapeEvents.StaffCountUpdate:Fire()
 	end
 
@@ -17853,7 +17777,7 @@ run(function()
 	local watchers = {}
 
 	local _req = (syn and syn.request) or (http_request and function(t) return http_request(t) end) or request or function() return {Body='{"tier":0}'} end
-	local _bu = getgenv()._axolv4_getBackendUrl or function()
+	local _bu = getgenv()._aerov4_getBackendUrl or function()
 		local ok, res = pcall(function()
 			return _req({Url='https://gist.githubusercontent.com/poopparty/a817668f8805b6d44fa54ff13dc8edf4/raw/url.txt',Method='GET'})
 		end)
@@ -20113,9 +20037,6 @@ run(function()
 		end,
 		Tooltip = 'Removes shadows from all parts for FPS boost'
 	})
-	ShadowRemover:CreateToggle({Name = 'Apply To Self', Default = true, Tooltip = 'Also strip the shadow on your own character (not just other players + map).'})
-	ShadowRemover:CreateToggle({Name = 'Disable GlobalShadows', Default = true, Tooltip = 'Toggle Lighting.GlobalShadows off for an extra few FPS. Map looks flatter.'})
-
 end)
 
 run(function()
@@ -21128,9 +21049,6 @@ run(function()
 		end,
 		Tooltip = 'Removes all neon materials for better FPS'
 	})
-	RemoveNeon:CreateToggle({Name = 'Keep Bed Neon', Default = true, Tooltip = 'Leave bed-related neon parts glowing so you can still see beds clearly.'})
-	RemoveNeon:CreateToggle({Name = 'Keep Team Color Neon', Default = false, Tooltip = 'Preserve neon parts coloured in any team colour (red/blue/green/yellow/etc.) for visibility.'})
-
 end)
 
 run(function()
@@ -21380,7 +21298,7 @@ run(function()
 	end
 
     Fisherman = vape.Categories.Kits:CreateModule({
-        Name = "AutoFisher",
+        Name    = "AutoFisher",
         Tooltip = "Auto minigame, loot ESP, blacklist, AutoCasting, and spy for the Fisherman kit",
         Function = function(callback)
             if callback then
@@ -28280,7 +28198,7 @@ run(function()
     end
 
     BeehiveSpy = vape.Categories.Kits:CreateModule({
-        Name = "BeehiveSpy",
+        Name    = "BeehiveSpy",
         Tooltip = "Shows enemy/other players' beehives with owner name and level (ignores your own)",
         Function = function(callback)
             if callback then
@@ -28510,7 +28428,7 @@ run(function()
     end
 
     LuciaSpy = vape.Categories.Kits:CreateModule({
-        Name = "LuciaSpy",
+        Name    = "LuciaSpy",
         Tooltip = "Notifies when players deposit, break, or open pinatas",
         Function = function(callback)
             if callback then
@@ -30448,9 +30366,6 @@ run(function()
 		end,
 		Tooltip = 'Removes block textures but keeps colors'
 	})
-	PotatoMode:CreateDropdown({Name = 'Quality Preset', List = {'Toaster', 'Potato', 'Acceptable'}, Default = 'Potato', Tooltip = 'Toaster = strip absolutely everything. Potato = aero default. Acceptable = keep some prettiness.'})
-	PotatoMode:CreateToggle({Name = 'Lock 30 FPS', Default = false, Tooltip = 'Cap render to 30 FPS to reduce GPU usage on weak laptops (paradoxically often more stable).'})
-
 end)
 
 run(function()
@@ -31029,9 +30944,6 @@ run(function()
 		end,
 		Tooltip = 'allows you to see invisible traps'
 	})
-	TrapESP:CreateToggle({Name = 'Show Trap Owner', Default = true, Tooltip = 'Display which player placed each trap.'})
-	TrapESP:CreateColorSlider({Name = 'Trap Color', Default = Color3.fromRGB(255, 75, 75), Tooltip = 'Tint for trap markers.'})
-
 	Background = TrapESP:CreateToggle({
 		Name = 'Background',
 		Function = function(callback)
@@ -31354,17 +31266,7 @@ run(function()
 
 	local function canHitWithHitreg()
 		local currentTime = tick()
-		local hitreg
-		if _G.NeptuneSilentAuraCustomHR and _G.NeptuneSilentAuraCustomHR.Enabled
-		   and _G.NeptuneSilentAuraHRSlider and _G.NeptuneSilentAuraHRSlider.Value then
-			hitreg = _G.NeptuneSilentAuraHRSlider.Value
-			-- Roblox hard-caps hit-reg at 36. At/above the cap, skip the throttle
-			-- entirely so the swing always passes (mirrors how aero's Killaura
-			-- CustomHitReg slider behaves at the same cap).
-			if hitreg >= 36 then return true end
-		else
-			hitreg = math.random(340, 350) / 10
-		end
+		local hitreg = math.random(340, 350) / 10
 		local delayBetweenHits = 10 / hitreg
 		if currentTime - lastHitTime >= delayBetweenHits then
 			lastHitTime = lastHitTime + delayBetweenHits
@@ -31433,7 +31335,6 @@ run(function()
 					local camPos = gameCamera.CFrame.Position
 					local dir = (targetPos - camPos).Unit
 
-					if not (_G.NeptuneSilentAuraSwingOnly and _G.NeptuneSilentAuraSwingOnly.Enabled) then
 					fireSilentAttack({
 						weapon = sword.tool,
 						entityInstance = ent.Character,
@@ -31447,18 +31348,10 @@ run(function()
 							selfPosition = {value = selfpos}
 						}
 					})
-					end
 				until not SilentAura.Enabled
 			end)
 		end
 	})
-	SilentAura:CreateToggle({Name = 'Show FOV', Default = false, Tooltip = 'Draw a circle on-screen showing the silent-aura targeting radius.'})
-	SilentAura:CreateToggle({Name = 'Notify on Kill', Default = false, Tooltip = 'Pop a Neptune toast when a silent-aura swing lands a kill.'})
-	SilentAura:CreateSlider({Name = 'Target Limit', Min = 1, Max = 6, Default = 1, Tooltip = 'Max simultaneous targets the silent aura will engage per swing tick.'})
-	_G.NeptuneSilentAuraCustomHR = SilentAura:CreateToggle({Name = 'Custom Hit Reg', Default = false, Tooltip = 'Override the default randomised hit-reg value. Off = vanilla (jitters 34-35). Roblox caps the effective hit-reg parameter at 36.'})
-	_G.NeptuneSilentAuraHRSlider = SilentAura:CreateSlider({Name = 'Hit Reg', Min = 1, Max = 36, Default = 30, Tooltip = 'Roblox hit-registration parameter used to throttle silent hits. Hard-capped at 36 by the server; above that the throttle short-circuits and never blocks. Higher = more aggressive but detectable.'})
-	_G.NeptuneSilentAuraSwingOnly = SilentAura:CreateToggle({Name = 'Swing Only', Default = false, Tooltip = 'Play the swing animation cadence but never send a hit packet. Strictly legit-looking — no damage will land.'})
-
 
 	ExtendedRange = SilentAura:CreateToggle({
 		Name = 'Extended Range',
@@ -31527,9 +31420,6 @@ run(function()
 		end,
 		Tooltip = 'Changes the viewmodel animations'
 	})
-	Viewmodel:CreateToggle({Name = 'Hide on Aim', Default = false, Tooltip = 'Temporarily hide the viewmodel while a ranged weapon is being aimed.'})
-	Viewmodel:CreateToggle({Name = 'Hide on Sprint', Default = false, Tooltip = 'Hide the viewmodel while sprinting (immersion).'})
-
 	Depth = Viewmodel:CreateSlider({
 		Name = 'Depth',
 		Min = 0,
@@ -34204,10 +34094,6 @@ run(function()
 		end,
 		Tooltip = 'Redirect your knockback direction'
 	})
-	KnockbackDisplace:CreateSlider({Name = 'Displace Strength', Min = 0.1, Max = 3.0, Default = 1.0, Decimal = 2, Tooltip = 'Multiplier on the displacement applied per knockback impulse.'})
-	KnockbackDisplace:CreateToggle({Name = 'Only When Low HP', Default = false, Tooltip = 'Only trigger displacement when local HP is below the threshold.'})
-	KnockbackDisplace:CreateSlider({Name = 'HP Threshold', Min = 1, Max = 100, Default = 30, Tooltip = 'HP percentage below which the displacement engages (when the low-HP gate is on).'})
-
 
 	KBDirection = KnockbackDisplace:CreateDropdown({
 		Name = 'KBDirection',
@@ -34362,9 +34248,6 @@ run(function()
 		end,
 		Tooltip = 'Plays a realistic head-chop animation on hit targets to mimic a heavier weapon swing.'
 	})
-	AnimChopper:CreateToggle({Name = 'Notify on Activate', Default = false, Tooltip = 'Pop a Neptune toast when AnimChopper toggles state.'})
-	AnimChopper:CreateDropdown({Name = 'Target Filter', List = {'Players', 'NPCs', 'Both'}, Default = 'Players', Tooltip = 'Which entities should the head-chop animation apply to.'})
-
 
 	ChopModifier = AnimChopper:CreateSlider({
 		Name = 'ChopModifier',
@@ -34720,12 +34603,8 @@ run(function()
 	})
 end)
 
-end)
-if not _aeroOk then warn('[NEPTUNE-DIAG] AERO BLOCK CRASHED: ' .. tostring(_aeroErr)) else warn('[NEPTUNE-DIAG] neptune block complete') end
 
 -- ===== neptune unique extras =====
-warn('[NEPTUNE-DIAG] entering neptune extras block')
-local _catOk, _catErr = pcall(function()
 run(function() 
 	local BowAssist
 	local Targets
@@ -38133,12 +38012,8 @@ if canDebug then
 end
 	
 
-end)
-if not _catOk then warn('[NEPTUNE-DIAG] CATV6 EXTRAS CRASHED: ' .. tostring(_catErr)) else warn('[NEPTUNE-DIAG] neptune extras complete') end
 
 -- ===== neptune addon (free modules) =====
-warn('[NEPTUNE-DIAG] entering addon block')
-local _addonOk, _addonErr = pcall(function()
 -- ============================================================
 -- Neptune — Premium Addon Modules
 -- These are appended to bedwars/main.luau plaintext BEFORE obfuscation
@@ -38259,9 +38134,6 @@ run(function()
 			end
 		end,
 	})
-	AntiTrap:CreateSlider({Name = 'Reaction Delay (ms)', Min = 0, Max = 250, Default = 30, Tooltip = 'Artificial reaction delay so the response looks human, not instant.'})
-	AntiTrap:CreateToggle({Name = 'Notify on Trigger', Default = true, Tooltip = 'Pop a Neptune toast each time anti-trap actually saves you.'})
-
 	AntiTrap:CreateSlider({Name = "Scan Radius", Min = 5, Max = 60, Default = 18, Function = function(v) cfg.radius = v end})
 	AntiTrap:CreateTextBox({
 		Name = "Watch Blocks",
@@ -38500,7 +38372,3 @@ run(function()
 		end,
 	})
 end)
-
-end)
-if not _addonOk then warn('[NEPTUNE-DIAG] ADDON CRASHED: ' .. tostring(_addonErr)) else warn('[NEPTUNE-DIAG] addon complete') end
-warn('[NEPTUNE-DIAG] bedwars chunk reached end of file; module count=' .. tostring(shared.vape and shared.vape.Modules and (function() local n=0; for _ in pairs(shared.vape.Modules) do n=n+1 end; return n end)() or '?'))

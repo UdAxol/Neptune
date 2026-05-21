@@ -643,60 +643,23 @@ if not shared.VapeIndependent then
 	local _argv = {...}
 	loadstring(downloadFile('neptune/games/universal.lua'), 'universal')()
 
-	local loaded = false
-	local supportedOk, supported = pcall(function()
-		return httpService:JSONDecode(downloadFile('neptune/profiles/supported.json'))
-	end)
-	if supportedOk and type(supported) == 'table' then
-		for gameKey, entry in pairs(supported) do
-			if loaded then break end
-			if type(entry) == 'table' and entry.gameid == game.GameId then
-				for placeKey, placeData in pairs(entry) do
-					if type(placeData) == 'table' and type(placeData.Ids) == 'table' and table.find(placeData.Ids, game.PlaceId) then
-						loaded = true
-						vape.Place = placeData.Place
-						if not isfolder('neptune/games/' .. gameKey) then
-							makefolder('neptune/games/' .. gameKey)
-						end
-						do
-							local _src = downloadFile('neptune/games/' .. gameKey .. '/' .. placeKey .. '.luau')
-							local _fn, _err = loadstring(_src, tostring(game.PlaceId))
-							if _fn then
-								_fn((table.unpack or unpack)(_argv))
-							else
-								warn('[NEPTUNE] failed to load ' .. placeKey .. ': ' .. tostring(_err))
-							end
-						end
-						local aeroPath = 'neptune/games/' .. gameKey .. '/aero.luau'
-						local aeroExists = isfile(aeroPath)
-						if not aeroExists then
-							local dlOk = pcall(function() downloadFile(aeroPath) end)
-							aeroExists = dlOk and isfile(aeroPath)
-						end
-						if placeKey == 'main' and aeroExists then
-							pcall(function()
-								local aeroFn = loadstring(downloadFile(aeroPath), 'aero ' .. tostring(game.PlaceId))
-								if aeroFn then aeroFn((table.unpack or unpack)(_argv)) end
-							end)
-						end
-						break
-					end
-				end
-			end
-		end
-	end
-
-	if not loaded then
-		local gameFileId = game.PlaceId
-		if isfile('neptune/games/' .. gameFileId .. '.lua') then
+	-- Aero-exact loader logic. See poopparty/poopparty/main.lua line 535:
+	-- one file per place ID. For bedwars (GameId 2619619496) we collapse
+	-- the lobby to 6872265039 and every match instance to 6872274481. For
+	-- any other game we use game.PlaceId directly. No supported.json
+	-- manifest, no per-game subfolders.
+	local gameFileId = (game.GameId == 2619619496)
+		and ((game.PlaceId == 6872265039) and 6872265039 or 6872274481)
+		or game.PlaceId
+	vape.Place = gameFileId
+	if isfile('neptune/games/' .. gameFileId .. '.lua') then
+		loadstring(downloadFile('neptune/games/' .. gameFileId .. '.lua'), tostring(gameFileId))((table.unpack or unpack)(_argv))
+	elseif not shared.VapeDeveloper then
+		local suc, res = pcall(function()
+			return game:HttpGet('https://raw.githubusercontent.com/UdAxol/Neptune/' .. readfile('neptune/profiles/commit.txt') .. '/games/' .. gameFileId .. '.lua', true)
+		end)
+		if suc and res ~= '404: Not Found' then
 			loadstring(downloadFile('neptune/games/' .. gameFileId .. '.lua'), tostring(gameFileId))((table.unpack or unpack)(_argv))
-		elseif not shared.VapeDeveloper then
-			local suc, res = pcall(function()
-				return game:HttpGet('https://raw.githubusercontent.com/UdAxol/Neptune/' .. readfile('neptune/profiles/commit.txt') .. '/games/' .. gameFileId .. '.lua', true)
-			end)
-			if suc and res ~= '404: Not Found' then
-				loadstring(downloadFile('neptune/games/' .. gameFileId .. '.lua'), tostring(gameFileId))((table.unpack or unpack)(_argv))
-			end
 		end
 	end
 	finishLoading()
